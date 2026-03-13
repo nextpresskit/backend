@@ -1,0 +1,26 @@
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/vendor/
+
+# Environment
+.env
+
+# Cursor
+.cursor/        # ignore AI scratch files
+.cursor/rules/  # commit this (project rules)
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs
+*.log
