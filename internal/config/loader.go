@@ -1,31 +1,21 @@
 package config
 
-import "os"
+import (
+	"log"
+	"os"
 
-type Config struct {
-	App      AppConfig
-	Database DatabaseConfig
-}
+	"github.com/joho/godotenv"
+)
 
-func Load() Config {
-	return Config{
-		App: AppConfig{
-			Port: getEnv("APP_PORT", "9090"),
-		},
-		Database: DatabaseConfig{
-			Driver:   getEnv("DB_DRIVER", "postgres"),
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
-			Name:     getEnv("DB_NAME", "nextpress"),
-		},
+func LoadEnv() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, relying on environment variables")
 	}
 }
 
-func getEnv(key, fallback string) string {
-	if val := os.Getenv(key); val != "" {
-		return val
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
 	}
 	return fallback
 }
