@@ -1,26 +1,21 @@
 package config
 
 import (
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
-	"go.uber.org/zap"
 )
 
 // LoadEnv loads environment variables from a .env file if it exists.
-// Logs a warning if the file is missing but continues with OS environment variables.
-func LoadEnv(logger *zap.Logger) {
+// Falls back to system environment variables otherwise.
+func LoadEnv() {
 	if err := godotenv.Load(); err != nil {
-		if logger != nil {
-			logger.Warn("No .env file found, relying on environment variables")
-		} else {
-			// fallback to standard log if logger is not initialized yet
-			println("Warning: No .env file found, relying on environment variables")
-		}
+		log.Println("No .env file found, using system environment variables")
 	}
 }
 
-// GetEnv returns the value of the environment variable if set, otherwise returns the fallback.
+// GetEnv returns the value of an environment variable or a fallback if not set.
 func GetEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
