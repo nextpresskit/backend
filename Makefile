@@ -8,7 +8,7 @@ BINARY_NAME=server
 MIGRATE_BINARY=migrate
 SEED_BINARY=seed
 
-.PHONY: all build run clean test migrate-up migrate-down migrate-down-all migrate-drop migrate-version seed seed-build db-fresh help tidy deps
+.PHONY: all build run clean test migrate-up migrate-down migrate-steps migrate-drop migrate-version seed seed-build db-fresh help tidy deps
 
 ## help: Display this help message
 help:
@@ -52,29 +52,33 @@ seed-build:
 # Database Migrations (placeholders until migrations are added)
 # =============================================================================
 
-## migrate-up: Run all pending migrations (not implemented yet)
+## migrate-up: Run all pending migrations
 migrate-up:
-	@echo "Migrations are not implemented yet for nextpress-backend."
+	go run ./cmd/migrate -command=up
 
-## migrate-down: Rollback the last migration (not implemented yet)
+## migrate-down: Rollback the last migration
 migrate-down:
-	@echo "Migrations are not implemented yet for nextpress-backend."
+	go run ./cmd/migrate -command=down
 
-## migrate-version: Show current migration version (not implemented yet)
+## migrate-steps: Run a specific number of migration steps
+migrate-steps:
+	@echo "Usage: make migrate-steps STEPS=n"
+	@true
+
+## migrate-version: Show current migration version
 migrate-version:
-	@echo "Migrations are not implemented yet for nextpress-backend."
+	go run ./cmd/migrate -command=version
 
-## migrate-down-all: Rollback all migrations (not implemented yet)
-migrate-down-all:
-	@echo "Migrations are not implemented yet for nextpress-backend."
-
-## migrate-drop: Drop all tables (not implemented yet)
+## migrate-drop: Drop all tables (dangerous)
 migrate-drop:
-	@echo "Migrations are not implemented yet for nextpress-backend."
+	@echo "WARNING: This will drop all tables in the database!"
+	@read -p "Are you sure? [y/N] " confirm && [ $${confirm:-N} = y ]
+	go run ./cmd/migrate -command=drop
 
-## db-fresh: Drop all tables then run all migrations (not implemented yet)
+## db-fresh: Drop all tables then run all migrations
 db-fresh:
-	@echo "Migrations are not implemented yet for nextpress-backend."
+	$(MAKE) migrate-drop
+	$(MAKE) migrate-up
 
 ## test: Run tests
 test:
