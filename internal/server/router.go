@@ -5,12 +5,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // ConfigureEngine applies global middleware and registers all top-level routes.
 // Feature modules will later plug into the provided router via dedicated
 // registration functions to keep boundaries clear.
-func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger) {
+func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger, db *gorm.DB) {
 	// In production you typically want to disable Gin's debug output and rely
 	// on structured logging instead.
 	gin.SetMode(gin.ReleaseMode)
@@ -20,8 +21,6 @@ func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger) {
 	engine.Use(gin.Recovery())
 	engine.Use(requestLoggingMiddleware(log))
 
-	// Health and readiness endpoints are intentionally simple and dependency
-	// free in Phase 1. Database and external checks will be wired in later.
 	engine.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
@@ -29,6 +28,29 @@ func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger) {
 	})
 
 	engine.GET("/ready", func(c *gin.Context) {
+		// A lightweight database check ensures we only report readiness when
+		// core dependencies are available. This keeps the handler cheap while
+		// still being meaningful for load balancers and orchestrators.
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status":  "not ready",
+				"details": "database handle not initialized",
+			})
+			return
+		}
+
+		if err := db.Exec("SELECT 1").Error; err != nil {
+			log.Warnw("readiness check failed",
+				"component", "database",
+				"error", err,
+			)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status":  "not ready",
+				"details": "database check failed",
+			})
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ready",
 		})

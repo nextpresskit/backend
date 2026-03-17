@@ -13,6 +13,7 @@ import (
 
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
 	platformLogger "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/logger"
+	platformDatabase "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/database"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/server"
 )
 
@@ -43,15 +44,32 @@ func main() {
 	appCfg := config.LoadAppConfig()
 	dbCfg := config.LoadDBConfig()
 
+	// Initialize a single database connection for the lifetime of the process.
+	// This avoids connection storms and keeps pooling behaviour predictable.
+	db, err := platformDatabase.New(platformDatabase.Config{
+		Driver:   dbCfg.Driver,
+		Host:     dbCfg.Host,
+		Port:     dbCfg.Port,
+		User:     dbCfg.User,
+		Password: dbCfg.Password,
+		Name:     dbCfg.Name,
+		SSLMode:  dbCfg.SSLMode,
+	})
+	if err != nil {
+		logger.Fatalw("failed to initialize database connection",
+			"error", err,
+		)
+	}
+
 	// Use Gin as the central HTTP router; we keep the setup centralized in the
 	// server package so that future modules can register routes cleanly.
 	engine := gin.New()
-	server.ConfigureEngine(engine, logger)
+	server.ConfigureEngine(engine, logger, db)
 
-	// Phase 1: We bootstrap the HTTP server only. The global DB instance and
-	// module wiring will be layered on top in later phases, but we already
-	// pass configuration through the Server to keep the surface stable.
-	srv := server.NewServer(engine, appCfg, dbCfg, logger)
+	// The Server holds the application configuration and shared dependencies
+	// such as the database handle. Additional modules will be layered on top
+	// of this container in subsequent phases.
+	srv := server.NewServer(engine, appCfg, dbCfg, db, logger)
 
 	// Run the HTTP server in its own goroutine so that we can listen for OS
 	// signals and coordinate a controlled shutdown sequence.
