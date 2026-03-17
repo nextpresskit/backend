@@ -48,6 +48,14 @@ func (p *JWTProvider) generate(userID string, ttl time.Duration) (string, error)
 }
 
 func (p *JWTProvider) ParseAccessToken(tokenStr string) (string, error) {
+	return p.parse(tokenStr)
+}
+
+func (p *JWTProvider) ParseRefreshToken(tokenStr string) (string, error) {
+	return p.parse(tokenStr)
+}
+
+func (p *JWTProvider) parse(tokenStr string) (string, error) {
 	t, err := jwt.ParseWithClaims(tokenStr, &claims{}, func(t *jwt.Token) (interface{}, error) {
 		return p.secret, nil
 	})

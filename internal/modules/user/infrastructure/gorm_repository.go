@@ -71,6 +71,12 @@ func (r *GormRepository) Update(user *domain.User) error {
 		Updates(&u).Error
 }
 
+func (r *GormRepository) Delete(id domain.UserID) error {
+	return r.db.WithContext(context.Background()).
+		Where("id = ?", string(id)).
+		Delete(&gormUser{}).Error
+}
+
 func toDomain(u *gormUser) *domain.User {
 	var deletedAt *time.Time
 	if u.DeletedAt.Valid {

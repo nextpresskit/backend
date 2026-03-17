@@ -12,9 +12,14 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
-	platformLogger "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/logger"
 	platformDatabase "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/database"
+	platformLogger "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/logger"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/server"
+
+	authApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
+	authInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/infrastructure"
+	authTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/transport"
+	userInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/infrastructure"
 )
 
 func main() {
@@ -35,7 +40,7 @@ func main() {
 	}(baseLogger)
 
 	logger.Infow("starting nextpress-backend",
-		"version", "0.1.0-phase1",
+		"version", "0.1.0-phase2",
 	)
 
 	// Load environment variables (from .env if present) and app configuration
@@ -43,6 +48,7 @@ func main() {
 	config.LoadEnv()
 	appCfg := config.LoadAppConfig()
 	dbCfg := config.LoadDBConfig()
+	jwtCfg := config.LoadJWTConfig()
 
 	// Initialize a single database connection for the lifetime of the process.
 	// This avoids connection storms and keeps pooling behaviour predictable.
@@ -61,10 +67,21 @@ func main() {
 		)
 	}
 
+	// Composition: user repo + hasher + jwt + auth service/handler
+	userRepo := userInfra.NewGormRepository(db)
+	passwordHasher := authInfra.NewBcryptHasher(0)
+	jwtProvider := authInfra.NewJWTProvider(jwtCfg.Secret, jwtCfg.AccessTTL, jwtCfg.RefreshTTL)
+	authService := authApp.NewService(userRepo, jwtProvider, passwordHasher)
+	authHandler := authTransport.NewHandler(authService)
+
 	// Use Gin as the central HTTP router; we keep the setup centralized in the
 	// server package so that future modules can register routes cleanly.
 	engine := gin.New()
 	server.ConfigureEngine(engine, logger, db)
+
+	// API v1 group
+	v1 := engine.Group("/v1")
+	authHandler.RegisterRoutes(v1)
 
 	// The Server holds the application configuration and shared dependencies
 	// such as the database handle. Additional modules will be layered on top
@@ -102,4 +119,3 @@ func main() {
 
 	logger.Info("nextpress-backend stopped cleanly")
 }
-

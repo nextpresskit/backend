@@ -12,6 +12,7 @@ type TokenProvider interface {
 	GenerateAccessToken(userID string) (string, error)
 	GenerateRefreshToken(userID string) (string, error)
 	ParseAccessToken(token string) (string, error)
+	ParseRefreshToken(token string) (string, error)
 }
 
 type PasswordHasher interface {
@@ -90,8 +91,24 @@ func (s *Service) Login(ctx context.Context, email, password string) (access, re
 	return access, refresh, nil
 }
 
-// generateUserID is a placeholder; swap to a real UUID generator when ready.
-func generateUserID() string {
-	return "" // TODO: implement
+func (s *Service) Refresh(ctx context.Context, refreshToken string) (access, refresh string, err error) {
+	userID, err := s.tokens.ParseRefreshToken(refreshToken)
+	if err != nil {
+		return "", "", ErrInvalidLogin
+	}
+
+	access, err = s.tokens.GenerateAccessToken(userID)
+	if err != nil {
+		return "", "", err
+	}
+	refresh, err = s.tokens.GenerateRefreshToken(userID)
+	if err != nil {
+		return "", "", err
+	}
+	return access, refresh, nil
 }
 
+// generateUserID is a placeholder; swap to a real UUID generator when ready.
+func generateUserID() string {
+	return "" // TODO: implement, e.g. github.com/google/uuid
+}
