@@ -38,6 +38,12 @@ This document describes the planned phases for nextpress-backend.
 - Add middleware to enforce permissions on routes.
 - Provide admin APIs to manage roles and permissions.
 
+**Current status:**
+
+- RBAC database schema is present (`roles`, `permissions`, `user_roles`, `role_permissions`).
+- Authorization middleware exists (`RequirePermission`) and is wired with a sample protected route:
+  - `GET /v1/admin/ping` requires `admin:ping`.
+
 ---
 
 ### Phase 4 – CMS Core

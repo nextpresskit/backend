@@ -14,11 +14,13 @@ import (
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
 	platformDatabase "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/database"
 	platformLogger "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/logger"
+	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/server"
 
 	authApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
 	authInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/infrastructure"
 	authTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/transport"
+	rbacInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/infrastructure"
 	userInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/infrastructure"
 )
 
@@ -73,6 +75,7 @@ func main() {
 	jwtProvider := authInfra.NewJWTProvider(jwtCfg.Secret, jwtCfg.AccessTTL, jwtCfg.RefreshTTL)
 	authService := authApp.NewService(userRepo, jwtProvider, passwordHasher)
 	authHandler := authTransport.NewHandler(authService)
+	permissionChecker := rbacInfra.NewGormPermissionChecker(db)
 
 	// Use Gin as the central HTTP router; we keep the setup centralized in the
 	// server package so that future modules can register routes cleanly.
@@ -82,6 +85,16 @@ func main() {
 	// API v1 group
 	v1 := engine.Group("/v1")
 	authHandler.RegisterRoutes(v1)
+
+	// Phase 3: example of authorization middleware on protected routes.
+	admin := v1.Group("/admin")
+	admin.Use(platformMiddleware.AuthRequired(jwtProvider))
+	admin.GET("/ping",
+		platformMiddleware.RequirePermission(permissionChecker, "admin:ping"),
+		func(c *gin.Context) {
+			c.JSON(200, gin.H{"ok": true})
+		},
+	)
 
 	// The Server holds the application configuration and shared dependencies
 	// such as the database handle. Additional modules will be layered on top
