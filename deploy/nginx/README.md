@@ -1,6 +1,7 @@
 # Nginx
 
 One config per environment. Edit `server_name` and `proxy_pass` to match your domain and app port.
+Uploads are served via Nginx at `/uploads/` by default (must match `MEDIA_PUBLIC_BASE_URL`).
 
 | File              | Domain (example)            | Port (example) |
 |-------------------|----------------------------|----------------|
@@ -17,6 +18,15 @@ sudo nginx -t && sudo systemctl reload nginx
 ```
 
 Repeat for staging/dev if needed, adjusting filenames.
+
+## Uploads (static files)
+
+The configs include:
+
+- `location /uploads/ { alias .../storage/uploads/; }`
+
+Make sure the `alias` path matches your server folder layout (e.g. `/var/www/nextpress-backend-production/storage/uploads/`)
+and that the app uses the same `MEDIA_STORAGE_DIR` (default: `storage/uploads`).
 
 ## TLS (Let's Encrypt)
 

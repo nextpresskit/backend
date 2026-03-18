@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
 )
@@ -25,6 +26,8 @@ type Server struct {
 	appCfg config.AppConfig
 	dbCfg  config.DBConfig
 
+	db *gorm.DB
+
 	log *zap.SugaredLogger
 }
 
@@ -35,6 +38,7 @@ func NewServer(
 	engine *gin.Engine,
 	appCfg config.AppConfig,
 	dbCfg config.DBConfig,
+	db *gorm.DB,
 	log *zap.SugaredLogger,
 ) *Server {
 	addr := fmt.Sprintf(":%s", appCfg.Port)
@@ -49,6 +53,7 @@ func NewServer(
 		http:   httpSrv,
 		appCfg: appCfg,
 		dbCfg:  dbCfg,
+		db:     db,
 		log:    log,
 	}
 }
