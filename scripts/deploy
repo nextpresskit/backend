@@ -64,6 +64,22 @@ go env -w CGO_ENABLED=0 >/dev/null 2>&1 || true
 go mod download
 mkdir -p bin
 go build -v -o bin/server ./cmd/api
+go build -v -o bin/migrate ./cmd/migrate
+go build -v -o bin/seed ./cmd/seed
+
+green "=== Running database migrations ==="
+# Export variables from .env for the migrate/seed commands.
+set -a
+source .env
+set +a
+./bin/migrate -command=up
+
+if [[ "${RUN_SEED_ON_DEPLOY:-}" == "true" ]]; then
+  green "=== Running database seeders ==="
+  ./bin/seed
+else
+  yellow "Seeders not executed (set RUN_SEED_ON_DEPLOY=true to run on deploy)."
+fi
 
 if systemctl list-units --type=service 2>/dev/null | grep -q "$SERVICE_NAME"; then
   green "=== Restarting systemd service: $SERVICE_NAME ==="
