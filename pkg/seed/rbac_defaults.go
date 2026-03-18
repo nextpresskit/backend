@@ -16,6 +16,8 @@ const (
 	PermissionCategoriesWriteID = "00000000-0000-0000-0000-000000000206"
 	PermissionTagsReadID        = "00000000-0000-0000-0000-000000000207"
 	PermissionTagsWriteID       = "00000000-0000-0000-0000-000000000208"
+	PermissionMediaReadID       = "00000000-0000-0000-0000-000000000209"
+	PermissionMediaWriteID      = "00000000-0000-0000-0000-000000000210"
 )
 
 func SeedRBACDefaults(db *gorm.DB) error {
@@ -88,6 +90,18 @@ func SeedRBACDefaults(db *gorm.DB) error {
 	).Error; err != nil {
 		return err
 	}
+	if err := db.Exec(
+		`INSERT INTO permissions (id, code) VALUES (?, ?) ON CONFLICT (code) DO NOTHING`,
+		PermissionMediaReadID, "media:read",
+	).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(
+		`INSERT INTO permissions (id, code) VALUES (?, ?) ON CONFLICT (code) DO NOTHING`,
+		PermissionMediaWriteID, "media:write",
+	).Error; err != nil {
+		return err
+	}
 
 	// role_permissions links
 	if err := db.Exec(
@@ -147,6 +161,18 @@ func SeedRBACDefaults(db *gorm.DB) error {
 	if err := db.Exec(
 		`INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
 		RoleAdminID, PermissionTagsWriteID,
+	).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(
+		`INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
+		RoleAdminID, PermissionMediaReadID,
+	).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(
+		`INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
+		RoleAdminID, PermissionMediaWriteID,
 	).Error; err != nil {
 		return err
 	}

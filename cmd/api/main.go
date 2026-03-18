@@ -20,6 +20,9 @@ import (
 	authApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
 	authInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/infrastructure"
 	authTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/transport"
+	mediaApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/application"
+	mediaInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/infrastructure"
+	mediaTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/transport"
 	pagesApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/application"
 	pagesInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/infrastructure"
 	pagesTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/transport"
@@ -63,6 +66,7 @@ func main() {
 	dbCfg := config.LoadDBConfig()
 	jwtCfg := config.LoadJWTConfig()
 	rbacCfg := config.LoadRBACConfig()
+	mediaCfg := config.LoadMediaConfig()
 
 	// Initialize a single database connection for the lifetime of the process.
 	// This avoids connection storms and keeps pooling behaviour predictable.
@@ -100,6 +104,10 @@ func main() {
 	taxRepo := taxInfra.NewGormRepository(db)
 	taxService := taxApp.NewService(taxRepo)
 	taxHandler := taxTransport.NewHandler(taxService)
+	mediaRepo := mediaInfra.NewGormRepository(db)
+	mediaStorage := mediaInfra.NewLocalStorage(mediaCfg.StorageDir, mediaCfg.PublicBaseURL, mediaCfg.MaxUploadBytes)
+	mediaService := mediaApp.NewService(mediaRepo, mediaStorage)
+	mediaHandler := mediaTransport.NewHandler(mediaService)
 
 	// Use Gin as the central HTTP router; we keep the setup centralized in the
 	// server package so that future modules can register routes cleanly.
@@ -122,6 +130,11 @@ func main() {
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
 	taxHandler.RegisterRoutes(
+		v1,
+		platformMiddleware.AuthRequired(jwtProvider),
+		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
+	)
+	mediaHandler.RegisterRoutes(
 		v1,
 		platformMiddleware.AuthRequired(jwtProvider),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },

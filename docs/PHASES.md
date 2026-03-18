@@ -88,6 +88,10 @@ This document describes the planned phases for nextpress-backend.
   - `POST /v1/tags` (requires `tags:write`)
   - `PUT /v1/tags/:id` (requires `tags:write`)
   - `DELETE /v1/tags/:id` (requires `tags:write`)
+- Media: upload + list APIs exist (RBAC-protected):
+  - `POST /v1/media` (multipart form field `file`, requires `media:write`)
+  - `GET /v1/media` (requires `media:read`)
+  - `GET /v1/media/:id` (requires `media:read`)
 
 ---
 
