@@ -112,6 +112,8 @@ func main() {
 	// Use Gin as the central HTTP router; we keep the setup centralized in the
 	// server package so that future modules can register routes cleanly.
 	engine := gin.New()
+	// Allow multipart uploads up to configured size (defaults to 10MB).
+	engine.MaxMultipartMemory = mediaCfg.MaxUploadBytes
 	server.ConfigureEngine(engine, logger, db)
 
 	// API v1 group
@@ -139,6 +141,11 @@ func main() {
 		platformMiddleware.AuthRequired(jwtProvider),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
+
+	// Serve uploads in local/dev mode. In production, prefer Nginx for static files.
+	if mediaCfg.PublicBaseURL != "" && mediaCfg.PublicBaseURL[0] == '/' {
+		engine.StaticFS(mediaCfg.PublicBaseURL, gin.Dir(mediaCfg.StorageDir, false))
+	}
 
 	// Phase 3: example of authorization middleware on protected routes.
 	admin := v1.Group("/admin")

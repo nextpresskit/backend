@@ -92,6 +92,7 @@ This document describes the planned phases for nextpress-backend.
   - `POST /v1/media` (multipart form field `file`, requires `media:write`)
   - `GET /v1/media` (requires `media:read`)
   - `GET /v1/media/:id` (requires `media:read`)
+  - uploads are served at `MEDIA_PUBLIC_BASE_URL` (default `/uploads`)
 
 ---
 
