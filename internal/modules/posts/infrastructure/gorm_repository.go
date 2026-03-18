@@ -68,13 +68,28 @@ func (r *GormRepository) FindBySlug(ctx context.Context, slug string) (*postDoma
 }
 
 func (r *GormRepository) List(ctx context.Context, includeDeleted bool, limit int, offset int) ([]postDomain.Post, error) {
-	q := r.db.WithContext(ctx).Model(&gormPost{}).Order("created_at DESC").Limit(limit).Offset(offset)
+	return r.ListFiltered(ctx, includeDeleted, limit, offset, "", "", "")
+}
+
+func (r *GormRepository) ListFiltered(ctx context.Context, includeDeleted bool, limit int, offset int, status string, authorID string, q string) ([]postDomain.Post, error) {
+	dbq := r.db.WithContext(ctx).Model(&gormPost{}).Order("created_at DESC").Limit(limit).Offset(offset)
 	if includeDeleted {
-		q = q.Unscoped()
+		dbq = dbq.Unscoped()
+	}
+
+	if status != "" {
+		dbq = dbq.Where("status = ?", status)
+	}
+	if authorID != "" {
+		dbq = dbq.Where("author_id = ?", authorID)
+	}
+	if q != "" {
+		like := "%" + q + "%"
+		dbq = dbq.Where("(title ILIKE ? OR content ILIKE ?)", like, like)
 	}
 
 	var rows []gormPost
-	if err := q.Find(&rows).Error; err != nil {
+	if err := dbq.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 

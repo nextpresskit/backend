@@ -109,9 +109,16 @@ func (h *Handler) getByID(c *gin.Context) {
 func (h *Handler) list(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.Query("limit"))
 	offset, _ := strconv.Atoi(c.Query("offset"))
+	status := c.Query("status")
+	authorID := c.Query("author_id")
+	q := c.Query("q")
 
-	posts, err := h.svc.List(c.Request.Context(), limit, offset)
+	posts, err := h.svc.ListFiltered(c.Request.Context(), limit, offset, status, authorID, q)
 	if err != nil {
+		if err == postApp.ErrInvalidStatus {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
 	}

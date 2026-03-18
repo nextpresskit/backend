@@ -87,7 +87,27 @@ func (s *Service) List(ctx context.Context, limit, offset int) ([]pageDomain.Pag
 	if offset < 0 {
 		offset = 0
 	}
-	return s.repo.List(ctx, false, limit, offset)
+	return s.repo.ListFiltered(ctx, false, limit, offset, "", "", "")
+}
+
+func (s *Service) ListFiltered(ctx context.Context, limit, offset int, status string, authorID string, q string) ([]pageDomain.Page, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	status = strings.ToLower(strings.TrimSpace(status))
+	if status != "" {
+		switch pageDomain.Status(status) {
+		case pageDomain.StatusDraft, pageDomain.StatusPublished, pageDomain.StatusArchived:
+		default:
+			return nil, ErrInvalidStatus
+		}
+	}
+	authorID = strings.TrimSpace(authorID)
+	q = strings.TrimSpace(q)
+	return s.repo.ListFiltered(ctx, false, limit, offset, status, authorID, q)
 }
 
 func (s *Service) Update(ctx context.Context, id, title, slug, content, status string) (*pageDomain.Page, error) {
