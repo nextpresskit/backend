@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 
 	postDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain"
-	platformHooks "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/hooks"
 )
 
 var (
@@ -22,13 +21,13 @@ var (
 
 type Service struct {
 	repo  postDomain.Repository
-	hooks platformHooks.PostSave // optional; nil skips hook calls
+	hooks postDomain.PostSave // optional; nil skips hook calls
 }
 
 // NewService constructs the posts application service. hooks may be nil
 // (no post-save callbacks). When non-nil, BeforePostSave runs before DB writes
 // and AfterPostSave after successful Create/Update.
-func NewService(repo postDomain.Repository, hooks platformHooks.PostSave) *Service {
+func NewService(repo postDomain.Repository, hooks postDomain.PostSave) *Service {
 	return &Service{repo: repo, hooks: hooks}
 }
 

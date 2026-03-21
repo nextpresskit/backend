@@ -128,7 +128,7 @@ This document describes the planned phases for nextpress-backend.
 - Plugin registry module added (`internal/modules/plugins`):
   - Admin endpoints: `GET /v1/admin/plugins`, `POST /v1/admin/plugins`, `PUT /v1/admin/plugins/:id` (RBAC: `plugins:manage`).
 - Hook infrastructure:
-  - `platform/hooks.PostSave` is the edge contract; posts `Create`/`Update` call `BeforePostSave` / `AfterPostSave` around persistence.
+  - `posts/domain.PostSave` is the port; posts `Create`/`Update` call `BeforePostSave` / `AfterPostSave` around persistence.
   - `HookRegistry` chains `PostHooks` implementations; bootstrap registers one noop slot per **enabled** plugin row (ready for real handlers).
 
 ---
