@@ -104,6 +104,19 @@ components:
         created_at: { type: string }
       required: [id, uploader_id, original_name, mime_type, size_bytes, public_url, created_at]
 
+    plugin:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        enabled: { type: boolean }
+        version: { type: string }
+        config: { type: object, additionalProperties: true }
+        created_at: { type: string }
+        updated_at: { type: string }
+      required: [id, name, slug, enabled, version, config, created_at, updated_at]
+
 paths:
   /health:
     get:
@@ -842,3 +855,78 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+
+  /v1/admin/plugins:
+    get:
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      description: Requires `plugins:manage`
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plugins:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/plugin"
+                required: [plugins]
+    post:
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      description: Requires `plugins:manage`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                slug: { type: string }
+                enabled: { type: boolean }
+                version: { type: string }
+                config:
+                  type: object
+                  additionalProperties: true
+              required: [name, slug]
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/plugin"
+
+  /v1/admin/plugins/{id}:
+    put:
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      description: Requires `plugins:manage`
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled: { type: boolean }
+                version: { type: string }
+                config:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/plugin"

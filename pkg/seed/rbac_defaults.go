@@ -20,6 +20,7 @@ const (
 	PermissionMediaWriteID      = "00000000-0000-0000-0000-000000000210"
 	PermissionMenusReadID       = "00000000-0000-0000-0000-000000000211"
 	PermissionMenusWriteID      = "00000000-0000-0000-0000-000000000212"
+	PermissionPluginsManageID   = "00000000-0000-0000-0000-000000000213"
 )
 
 func SeedRBACDefaults(db *gorm.DB) error {
@@ -199,6 +200,12 @@ func SeedRBACDefaults(db *gorm.DB) error {
 	if err := db.Exec(
 		`INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
 		RoleAdminID, PermissionMenusWriteID,
+	).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(
+		`INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
+		RoleAdminID, PermissionPluginsManageID,
 	).Error; err != nil {
 		return err
 	}

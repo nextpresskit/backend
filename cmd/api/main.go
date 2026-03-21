@@ -26,6 +26,9 @@ import (
 	menusApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/menus/application"
 	menusInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/menus/infrastructure"
 	menusTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/menus/transport"
+	pluginsApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/application"
+	pluginsInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/infrastructure"
+	pluginsTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/transport"
 	pagesApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/application"
 	pagesInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/infrastructure"
 	pagesTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/transport"
@@ -116,6 +119,22 @@ func main() {
 	menusService := menusApp.NewService(menusRepo)
 	menusHandler := menusTransport.NewHandler(menusService)
 
+	pluginsRepo := pluginsInfra.NewGormRepository(db)
+	pluginsService := pluginsApp.NewService(pluginsRepo)
+	pluginsHandler := pluginsTransport.NewHandler(pluginsService)
+
+	// Bootstrap hook infrastructure from enabled plugins. A0 currently wires a
+	// no-op registry, but the lookup path is already in place so Phase 5 can
+	// attach real plugin hooks later without refactoring bootstrap logic.
+	postHooks, enabledCount, err := pluginsApp.BootstrapPostHooks(ctx, pluginsRepo)
+	if err != nil {
+		logger.Fatalw("failed to bootstrap plugin hooks",
+			"error", err,
+		)
+	}
+	_ = postHooks
+	logger.Infow("plugin hooks bootstrapped", "enabled_plugins", enabledCount)
+
 	// Use Gin as the central HTTP router; we keep the setup centralized in the
 	// server package so that future modules can register routes cleanly.
 	engine := gin.New()
@@ -183,6 +202,12 @@ func main() {
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
 	menusHandler.RegisterRoutes(
+		admin,
+		platformMiddleware.AuthRequired(jwtProvider),
+		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
+	)
+
+	pluginsHandler.RegisterRoutes(
 		admin,
 		platformMiddleware.AuthRequired(jwtProvider),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
