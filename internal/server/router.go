@@ -2,10 +2,13 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+
+	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
 )
 
 // ConfigureEngine applies global middleware and registers all top-level routes.
@@ -19,6 +22,7 @@ func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger, db *gorm.DB) {
 	// Global middleware stack. We keep this minimal in Phase 1 and will extend
 	// it (e.g. for authentication, request IDs, metrics) in later phases.
 	engine.Use(gin.Recovery())
+	engine.Use(platformMiddleware.RequestIDMiddleware())
 	engine.Use(requestLoggingMiddleware(log))
 
 	engine.GET("/health", func(c *gin.Context) {
@@ -70,16 +74,34 @@ func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger, db *gorm.DB) {
 // emitting meaningful data for production troubleshooting.
 func requestLoggingMiddleware(log *zap.SugaredLogger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		start := time.Now()
+
 		path := c.Request.URL.Path
 		method := c.Request.Method
+		clientIP := c.ClientIP()
+
+		var requestID string
+		if v, ok := c.Get(platformMiddleware.ContextRequestIDKey); ok {
+			requestID, _ = v.(string)
+		}
+
+		var userID string
+		if v, ok := c.Get(platformMiddleware.ContextUserIDKey); ok {
+			userID, _ = v.(string)
+		}
 
 		c.Next()
 
 		status := c.Writer.Status()
+		latencyMs := time.Since(start).Milliseconds()
 		log.Infow("http request completed",
 			"method", method,
 			"path", path,
 			"status", status,
+			"client_ip", clientIP,
+			"request_id", requestID,
+			"user_id", userID,
+			"latency_ms", latencyMs,
 		)
 	}
 }

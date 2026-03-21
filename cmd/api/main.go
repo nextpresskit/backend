@@ -70,6 +70,7 @@ func main() {
 	jwtCfg := config.LoadJWTConfig()
 	rbacCfg := config.LoadRBACConfig()
 	mediaCfg := config.LoadMediaConfig()
+	rateCfg := config.LoadRateLimitConfig()
 
 	// Initialize a single database connection for the lifetime of the process.
 	// This avoids connection storms and keeps pooling behaviour predictable.
@@ -124,12 +125,31 @@ func main() {
 
 	// API v1 group
 	v1 := engine.Group("/v1")
-	authHandler.RegisterRoutes(v1)
+	// Rate limiting is grouped by API category to avoid coupling different
+	// traffic types (public browsing vs auth vs admin writes).
+	publicMax := rateCfg.PublicMaxPerMinute
+	authMax := rateCfg.AuthMaxPerMinute
+	adminMax := rateCfg.AdminMaxPerMinute
+	if !rateCfg.Enabled {
+		publicMax = 0
+		authMax = 0
+		adminMax = 0
+	}
+
+	publicLimiter := platformMiddleware.NewFixedWindowRateLimiter(publicMax, rateCfg.Window)
+	authLimiter := platformMiddleware.NewFixedWindowRateLimiter(authMax, rateCfg.Window)
+	adminLimiter := platformMiddleware.NewFixedWindowRateLimiter(adminMax, rateCfg.Window)
+
+	authGroup := v1.Group("")
+	authGroup.Use(authLimiter.Middleware("auth"))
+	authHandler.RegisterRoutes(authGroup)
 
 	// Public APIs (Phase 4): published content, no auth.
-	postsHandler.RegisterPublicRoutes(v1)
-	pagesHandler.RegisterPublicRoutes(v1)
-	menusHandler.RegisterPublicRoutes(v1)
+	publicGroup := v1.Group("")
+	publicGroup.Use(publicLimiter.Middleware("public"))
+	postsHandler.RegisterPublicRoutes(publicGroup)
+	pagesHandler.RegisterPublicRoutes(publicGroup)
+	menusHandler.RegisterPublicRoutes(publicGroup)
 
 	// Serve uploads in local/dev mode. In production, prefer Nginx for static files.
 	if mediaCfg.PublicBaseURL != "" && mediaCfg.PublicBaseURL[0] == '/' {
@@ -138,7 +158,9 @@ func main() {
 
 	// Admin/content APIs (Phase 3–4): protected, used by CMS/admin UI.
 	admin := v1.Group("/admin")
-	admin.Use(platformMiddleware.AuthRequired(jwtProvider))
+	// Rate limit is applied before auth so abuse without valid tokens is also
+	// throttled.
+	admin.Use(adminLimiter.Middleware("admin"), platformMiddleware.AuthRequired(jwtProvider))
 
 	postsHandler.RegisterRoutes(
 		admin,

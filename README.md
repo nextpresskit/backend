@@ -79,6 +79,9 @@ For full deployment instructions (Ubuntu + systemd + Nginx), see:
 - `docs/deployment/dev.md`
 - `docs/deployment/local.md`
 
+API Reference:
+- OpenAPI spec: `docs/openapi.yaml`
+
 # NextPress Backend
 
 NextPress is a modular CMS backend written in Go.

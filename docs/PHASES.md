@@ -106,6 +106,11 @@ This document describes the planned phases for nextpress-backend.
   - `GET /v1/posts/:slug` (published only)
   - `GET /v1/pages/:slug` (published only)
   - `GET /v1/menus/:slug` (items returned as a tree)
+- Phase 4 hardening:
+  - In-memory rate limiting middleware added for `public`, `auth`, and `admin` API groups.
+  - Request correlation via `X-Request-ID` + improved structured request logging (latency/client IP/user id).
+  - OpenAPI spec added at `docs/openapi.yaml`.
+  - `httptest` coverage for critical middleware/route wiring exists.
 
 ---
 
