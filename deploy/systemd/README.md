@@ -1,27 +1,41 @@
-# Systemd
+# systemd unit (template + instances)
 
-One template unit for all environments. Instance name (`%i`) = production, staging, or dev.
+This folder contains a single **template unit**: `nextpress-backend@.service`.
 
-- **Template:** `nextpress-backend@.service` → install to `/etc/systemd/system/`
-- **Instances:** `nextpress-backend@production`, `nextpress-backend@staging`, `nextpress-backend@dev`
-- **Folders:** `/var/www/nextpress-backend-%i` (e.g. `/var/www/nextpress-backend-production`)
-- **APP_ENV:** The unit sets `Environment=APP_ENV=%i` so the process gets `APP_ENV=production`, `APP_ENV=staging`, or `APP_ENV=dev` from the instance name. `.env` can override if needed.
+- **Template**: `nextpress-backend@.service` (install once)
+- **Instances**: `nextpress-backend@production`, `nextpress-backend@staging`, `nextpress-backend@dev`
+- **Folder layout**: `/var/www/nextpress-backend-%i` (instance name is substituted for `%i`)
+- **APP_ENV**: the unit sets `APP_ENV=%i` (for example `APP_ENV=staging`)
 
-Install once:
+For the full server walkthrough (Nginx, TLS, deploy script) see `docs/DEPLOYMENT.md` and `docs/deployment/*.md`.
+
+## Install (one-time)
 
 ```bash
 sudo cp deploy/systemd/nextpress-backend@.service /etc/systemd/system/
 sudo systemctl daemon-reload
 ```
 
-Then per environment:
+## Enable / start an environment
 
 ```bash
 sudo systemctl enable nextpress-backend@<env>
 sudo systemctl start nextpress-backend@<env>
 ```
 
-For full server setup (Nginx, TLS, folders), see **[docs/deployment/](../../docs/deployment/)**.
+Examples:
 
-`scripts/deploy` runs **migrate up** before restarting the service. Optional **seed** on deploy is controlled by `RUN_SEED_ON_DEPLOY` in `.env` — see **[DEPLOYMENT.md](../../docs/DEPLOYMENT.md)**.
+- `sudo systemctl enable nextpress-backend@production && sudo systemctl start nextpress-backend@production`
+- `sudo systemctl enable nextpress-backend@staging && sudo systemctl start nextpress-backend@staging`
+- `sudo systemctl enable nextpress-backend@dev && sudo systemctl start nextpress-backend@dev`
+
+## Deploy interaction
+
+`scripts/deploy` (run from the environment folder) will:
+
+- pull the correct branch (`main` / `staging` / `dev`)
+- build `bin/server` + `bin/migrate` + `bin/seed`
+- run migrations (`migrate up`)
+- optionally run seeders if `.env` contains `RUN_SEED_ON_DEPLOY=true`
+- restart `nextpress-backend@<env>` if the service exists
 
