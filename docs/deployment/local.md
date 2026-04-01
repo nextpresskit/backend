@@ -31,7 +31,8 @@ cp .env.example .env
 Edit `.env`:
 
 - **`DB_*`** — point at your local Postgres database.
-- **`JWT_SECRET`** — set a non-default value outside toy demos.
+- **`APP_ENV=local`** — recommended local environment name (matches `.env.example` and `scripts/run_local.sh`).
+- **`JWT_SECRET`** — set a strong, non-default value for any environment beyond short-lived local testing.
 - Optional: **`RATE_LIMIT_*`**, **`MEDIA_*`**, **`RBAC_BOOTSTRAP_ENABLED`** — see `.env.example`.
 
 ---

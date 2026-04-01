@@ -1,126 +1,103 @@
 # nextpress-backend
 
-Production-oriented **CMS API** in Go: **modular monolith**, **PostgreSQL + GORM**, **Gin**, **JWT auth**, **RBAC**, **CMS core** (posts, pages, taxonomy, media, menus), **public read APIs**, **rate limiting**, **plugin registry + post-save hooks** (Phase 5 in progress).
+Production-oriented **CMS API** in Go.
 
----
+- **Architecture**: modular monolith (`internal/modules/*`)
+- **HTTP**: Gin
+- **DB**: PostgreSQL + GORM + SQL migrations (`migrations/`, `cmd/migrate`)
+- **Auth**: bcrypt passwords, JWT access + refresh
+- **Authorization**: RBAC permissions on `/v1/admin/*`
+- **CMS core**: posts, pages, taxonomy (categories/tags), media, menus (+ public read APIs)
+- **Hardening**: request IDs + structured logs, in-memory rate limiting
+- **Extensibility (WIP)**: plugin registry + post-save hook chain
 
-## Current status (snapshot)
+## Status / roadmap
 
-| Area | Status |
-|------|--------|
-| **Phase 1** – infra, config, migrations, deploy tooling | Done |
-| **Phase 2** – register / login / refresh, bcrypt, JWT | Done |
-| **Phase 3** – RBAC, seed, admin RBAC APIs | Done |
-| **Phase 4** – CMS CRUD + public `/v1/*` reads + hardening (rate limits, `X-Request-ID`, OpenAPI, tests) | Done |
-| **Phase 5** – `plugins` table, admin plugin CRUD, `HookRegistry`, posts `PostSave` hooks | **A0–A1 done**; real plugin handlers & loader next |
-| **Phase 6–7** | Planned (admin dashboard API, example ecommerce plugin) |
+This repo is developed in phases (infra → auth → RBAC → CMS core → plugins). The authoritative roadmap is `docs/PHASES.md`.
 
-Details and next steps: **`docs/PHASES.md`**.
+## Requirements
 
----
-
-## Stack
-
-- Go 1.26+
-- Gin, Zap, GORM, PostgreSQL
-- JWT access + refresh (`github.com/golang-jwt/jwt/v5`), bcrypt passwords
-
----
+- **Go**: 1.26 (see `go.mod`)
+- **PostgreSQL**: required for a working API (auth/CMS/RBAC)
 
 ## Quick start (local)
 
 ```bash
 cp .env.example .env
-# Edit .env — set DB_* for PostgreSQL
-go mod download
-make migrate-up    # apply SQL migrations
-make seed          # RBAC defaults (admin role + permissions)
-make run           # or: go run ./cmd/api
+# edit .env: set DB_* to your Postgres, change JWT_SECRET
+
+make deps
+make migrate-up
+make seed
+make run
 ```
 
-Health: `GET /health`, `GET /ready` (DB check).
+- **Base URL**: `http://localhost:<APP_PORT>` (default `9090`)
+- **Health**: `GET /health`
+- **Readiness** (DB check): `GET /ready`
+- **API spec**: `docs/openapi.yaml`
 
-**Tests:** `go test ./...` · **Vet:** `go vet ./...` · **Build:** `make build` → `bin/server`
+## Common commands
 
-**API contract:** `docs/openapi.yaml`
+```bash
+make help
+make build
+make test
+make tidy
 
----
+make migrate-up
+make migrate-down
+make migrate-version
+make db-fresh   # dangerous: drops all tables
 
-## Configuration
+make seed
+```
 
-Primary reference: **`.env.example`** (all variables with short comments).
+## Configuration (.env)
 
-| Group | Examples |
-|-------|-----------|
-| App | `APP_NAME`, `APP_ENV`, `APP_PORT` |
-| DB | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE` |
-| JWT | `JWT_SECRET`, `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` |
-| RBAC | `RBAC_BOOTSTRAP_ENABLED` (optional first-admin bootstrap) |
-| Media | `MEDIA_STORAGE_DIR`, `MEDIA_PUBLIC_BASE_URL`, `MEDIA_MAX_UPLOAD_BYTES` |
-| Rate limits | `RATE_LIMIT_ENABLED`, `RATE_LIMIT_*_MAX_PER_MINUTE` |
+Primary reference is `.env.example` (all variables, with short notes). Highlights:
 
----
+- **App**: `APP_NAME`, `APP_ENV`, `APP_PORT`
+- **Database**: `DB_*` (host/port/name/user/password/sslmode)
+- **JWT**: `JWT_SECRET`, `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL`
+- **RBAC bootstrap** (optional): `RBAC_BOOTSTRAP_ENABLED=true` enables `POST /v1/admin/bootstrap/claim-admin`
+- **Media**: `MEDIA_STORAGE_DIR`, `MEDIA_PUBLIC_BASE_URL`, `MEDIA_MAX_UPLOAD_BYTES`
+- **Rate limiting**: `RATE_LIMIT_ENABLED`, `RATE_LIMIT_*_MAX_PER_MINUTE`
+
+## API overview
+
+- **Auth**: `POST /v1/auth/register`, `/v1/auth/login`, `/v1/auth/refresh`
+- **Public read** (no auth): `GET /v1/posts`, `/v1/posts/:slug`, `/v1/pages/:slug`, `/v1/menus/:slug`
+- **Admin**: `/v1/admin/*` (JWT + permission checks)
+
+Full list and schemas are in `docs/openapi.yaml`.
+
+## RBAC: getting an admin user
+
+RBAC defaults are seeded by `make seed` (see `docs/SEEDING.md`). After you have at least one registered user:
+
+- **Recommended**: use the RBAC admin APIs (guarded by `rbac:manage`) to assign roles/permissions
+- **Optional**: enable the one-time bootstrap endpoint with `RBAC_BOOTSTRAP_ENABLED=true` (see `cmd/api/main.go` and `docs/PHASES.md`)
 
 ## Repository layout
 
 ```text
-.
-├── cmd/
-│   ├── api/           # HTTP API entrypoint
-│   ├── migrate/       # SQL migrations runner
-│   └── seed/          # Database seeders
-├── internal/
-│   ├── config/        # Env-based configuration
-│   ├── modules/       # Feature slices (auth, user, rbac, posts, pages, …)
-│   ├── platform/      # DB, logger, middleware
-│   └── server/        # Gin engine, global middleware, health routes
-├── migrations/        # Timestamped SQL (pkg/migrate)
-├── pkg/
-│   ├── migrate/       # Migration runner
-│   └── seed/          # Seeder entry + RBAC defaults
-├── deploy/            # nginx, systemd templates
-├── docs/              # Phases, deployment, OpenAPI, seeding
-├── scripts/           # deploy, run_local.sh
-└── Makefile
+cmd/          entrypoints (api, migrate, seed)
+internal/     app code (config, platform, modules, server wiring)
+migrations/   timestamped SQL migrations
+pkg/          shared libraries used by entrypoints
+deploy/       nginx + systemd templates
+docs/         roadmap, deployment, seeding, OpenAPI
+scripts/      deploy + local run helpers
+Makefile      developer commands
 ```
 
----
+## Git workflow and deployment
 
-## API layout (summary)
+- **Branches**: `dev` → `staging` → `main` (promotion by merge + push)
+- **Workflow**: `docs/GIT_FLOW.md`
+- **Deployment hub**: `docs/DEPLOYMENT.md` and `docs/deployment/*.md`
 
-- **Public (no auth):** `GET /v1/posts`, `GET /v1/posts/:slug`, `GET /v1/pages/:slug`, `GET /v1/menus/:slug`
-- **Auth:** `POST /v1/auth/register`, `/login`, `/refresh`
-- **Admin (JWT + permission):** `/v1/admin/*` — CMS CRUD, RBAC management, `GET/POST /v1/admin/plugins`, `PUT /v1/admin/plugins/:id` (`plugins:manage`)
+## Documentation index
 
-Full list: **`docs/openapi.yaml`**.
-
----
-
-## Git workflow
-
-| Branch | Role |
-|--------|------|
-| **`dev`** | Integration / daily work |
-| **`staging`** | Pre-production |
-| **`main`** | Production |
-
-**Promotion:** `dev` → `staging` → `main` (merge + push each step). **Full guide** (feature branches, hotfixes, sync-back, commands): **`docs/GIT_FLOW.md`**.
-
-Server layout and deploy: **`docs/DEPLOYMENT.md`** (`/var/www/nextpress-backend-{dev,staging,production}`).
-
----
-
-## Documentation
-
-- **Roadmap & next steps:** `docs/PHASES.md`  
-- **Index of all docs:** `docs/README.md`  
-- **Deploy:** `docs/DEPLOYMENT.md` + `docs/deployment/*.md`  
-- **Seeders:** `docs/SEEDING.md`
-
----
-
-## Architecture notes
-
-- **Modular monolith** — one process, one DB; boundaries under `internal/modules/*`.
-- **Clean layering** — transport → application → domain (+ infrastructure per module).
-- **Post-save hooks** — `posts/domain.PostSave` port; `HookRegistry` in plugins module implements it; wired in `cmd/api`.
+Start at `docs/README.md`.
