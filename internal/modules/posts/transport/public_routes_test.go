@@ -11,10 +11,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
-
 	postsApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
 	postDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain"
+	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
 )
 
 type dummyAccessTokenParser struct{}
@@ -35,27 +34,24 @@ func (m mockPermissionChecker) UserHasPermission(_ context.Context, _ string, _ 
 	return m.allowed, m.err
 }
 
-type mockPostRepo struct {
+// mockPostsCore implements PostsCore for route tests (only public list/slug behaviors are non-trivial).
+type mockPostsCore struct {
 	published []postDomain.Post
 }
 
-func (m *mockPostRepo) Create(ctx context.Context, post *postDomain.Post) error {
-	return nil
+func (m *mockPostsCore) Create(_ context.Context, _, _, _, _ string) (*postDomain.Post, error) {
+	return nil, postsApp.ErrInvalidPost
 }
-func (m *mockPostRepo) FindByID(ctx context.Context, id postDomain.PostID) (*postDomain.Post, error) {
+
+func (m *mockPostsCore) GetByID(_ context.Context, _ string) (*postDomain.Post, error) {
+	return nil, postsApp.ErrPostNotFound
+}
+
+func (m *mockPostsCore) ListFiltered(_ context.Context, _, _ int, _, _, _ string) ([]postDomain.Post, error) {
 	return nil, nil
 }
-func (m *mockPostRepo) FindBySlug(ctx context.Context, slug string) (*postDomain.Post, error) {
-	return nil, nil
-}
-func (m *mockPostRepo) List(ctx context.Context, includeDeleted bool, limit int, offset int) ([]postDomain.Post, error) {
-	return nil, nil
-}
-func (m *mockPostRepo) ListFiltered(ctx context.Context, includeDeleted bool, limit int, offset int, status string, authorID string, q string) ([]postDomain.Post, error) {
-	return nil, nil
-}
-func (m *mockPostRepo) ListPublished(ctx context.Context, limit int, offset int, q string, categoryID string, tagID string) ([]postDomain.Post, error) {
-	// Simple behavior for tests: ignore filters and return the first `limit` items.
+
+func (m *mockPostsCore) PublicList(_ context.Context, limit, offset int, _ string, _, _ string) ([]postDomain.Post, error) {
 	if offset < 0 {
 		offset = 0
 	}
@@ -72,25 +68,38 @@ func (m *mockPostRepo) ListPublished(ctx context.Context, limit int, offset int,
 	}
 	return m.published[start:end], nil
 }
-func (m *mockPostRepo) FindPublishedBySlug(ctx context.Context, slug string) (*postDomain.Post, error) {
+
+func (m *mockPostsCore) PublicGetBySlug(_ context.Context, slug string) (*postDomain.Post, error) {
 	for i := range m.published {
 		if m.published[i].Slug == slug {
 			p := m.published[i]
 			return &p, nil
 		}
 	}
-	return nil, nil
+	return nil, postsApp.ErrPostNotFound
 }
-func (m *mockPostRepo) Update(ctx context.Context, post *postDomain.Post) error {
+
+func (m *mockPostsCore) Update(_ context.Context, _, _, _, _, _ string) (*postDomain.Post, error) {
+	return nil, postsApp.ErrPostNotFound
+}
+
+func (m *mockPostsCore) Save(_ context.Context, _ *postDomain.Post) (*postDomain.Post, error) {
+	return nil, postsApp.ErrPostNotFound
+}
+
+func (m *mockPostsCore) Delete(_ context.Context, _ string) error {
 	return nil
 }
-func (m *mockPostRepo) Delete(ctx context.Context, id postDomain.PostID) error {
+
+func (m *mockPostsCore) SetCategories(_ context.Context, _ string, _ []string) error {
 	return nil
 }
-func (m *mockPostRepo) SetCategories(ctx context.Context, postID postDomain.PostID, categoryIDs []string) error {
+
+func (m *mockPostsCore) SetTags(_ context.Context, _ string, _ []string) error {
 	return nil
 }
-func (m *mockPostRepo) SetTags(ctx context.Context, postID postDomain.PostID, tagIDs []string) error {
+
+func (m *mockPostsCore) SetPrimaryCategory(_ context.Context, _ string, _ *string) error {
 	return nil
 }
 
@@ -98,7 +107,7 @@ func TestPublicPostsRoute_ReturnsPublishedPosts(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	now := time.Now().UTC()
-	repo := &mockPostRepo{
+	core := &mockPostsCore{
 		published: []postDomain.Post{
 			{
 				ID:          postDomain.PostID("p1"),
@@ -114,8 +123,7 @@ func TestPublicPostsRoute_ReturnsPublishedPosts(t *testing.T) {
 		},
 	}
 
-	svc := postsApp.NewService(repo, nil)
-	h := NewHandler(svc)
+	h := NewHandler(core, stubPostsSubresources{}, stubSeriesAdmin{}, stubTranslationGroupsAdmin{})
 
 	router := gin.New()
 	v1 := router.Group("/v1")
@@ -156,9 +164,7 @@ func TestPublicPostsRoute_ReturnsPublishedPosts(t *testing.T) {
 func TestAdminPostsRoute_RequiresAuth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	repo := &mockPostRepo{published: []postDomain.Post{}}
-	svc := postsApp.NewService(repo, nil)
-	h := NewHandler(svc)
+	h := NewHandler(&mockPostsCore{}, stubPostsSubresources{}, stubSeriesAdmin{}, stubTranslationGroupsAdmin{})
 
 	parser := dummyAccessTokenParser{}
 	checker := mockPermissionChecker{allowed: true}
@@ -182,4 +188,3 @@ func TestAdminPostsRoute_RequiresAuth(t *testing.T) {
 		t.Fatalf("expected status 401, got %d", w.Code)
 	}
 }
-
