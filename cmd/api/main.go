@@ -113,9 +113,42 @@ func main() {
 	}
 	logger.Infow("plugin hooks bootstrapped", "enabled_plugins", enabledPluginCount)
 
-	postsRepo := postsInfra.NewGormRepository(db)
-	postsService := postsApp.NewService(postsRepo, postHooks)
-	postsHandler := postsTransport.NewHandler(postsService)
+	postsRepo := postsInfra.NewRepositoryAdapter(postsInfra.NewGormRepository(db))
+	derivedHook := postsApp.NewDerivedFieldsHook(postsRepo)
+	hooks := postsApp.NewPostSaveChain(derivedHook, postHooks)
+	postsService := postsApp.NewService(postsRepo, hooks)
+	postsHandler := postsTransport.NewHandlerFromService(postsService)
+
+	// Background loop: promote scheduled posts when due.
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				res := db.WithContext(ctx).Exec(
+					`UPDATE posts
+					 SET status = 'published',
+					     published_at = COALESCE(published_at, NOW()),
+					     workflow_stage = 'published',
+					     updated_at = NOW()
+					 WHERE scheduled_publish_at IS NOT NULL
+					   AND scheduled_publish_at <= NOW()
+					   AND status <> 'published'`,
+				)
+				if res.Error != nil {
+					logger.Errorw("scheduled publish loop failed", "error", res.Error)
+					continue
+				}
+				if res.RowsAffected > 0 {
+					logger.Infow("scheduled posts promoted", "count", res.RowsAffected)
+				}
+			}
+		}
+	}()
+
 	pagesRepo := pagesInfra.NewGormRepository(db)
 	pagesService := pagesApp.NewService(pagesRepo)
 	pagesHandler := pagesTransport.NewHandler(pagesService)
