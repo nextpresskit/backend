@@ -1,6 +1,6 @@
 # Local development
 
-**Tutorial / how-to** — run the API on your machine without Nginx or systemd.
+**Tutorial / how-to** - run the API on your machine without Nginx or systemd.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ go mod download
 cp .env.example .env
 ```
 
-Configure `DB_*`, `JWT_SECRET`, `APP_ENV=local`. Optional flags: Elasticsearch, GraphQL — [`.env.example`](../../.env.example).
+Configure `DB_*`, `JWT_SECRET`, `APP_ENV=local`. Optional flags: Elasticsearch, GraphQL - [`.env.example`](../../.env.example).
 
 ## Migrate, seed, run
 

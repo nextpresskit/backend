@@ -1,6 +1,6 @@
 # Database seeding
 
-**How-to** — run seeders and understand default RBAC data.
+**How-to** - run seeders and understand default RBAC data.
 
 Seeders load **reference data** (especially RBAC). They are **idempotent**: natural keys use `ON CONFLICT DO NOTHING` (or equivalent) so repeat runs do not duplicate roles, permissions, etc.
 
@@ -32,8 +32,8 @@ Source: `pkg/seed/rbac_defaults.go`.
 | Code | Typical use |
 |------|-------------|
 | `admin:ping` | `GET /v1/admin/ping` |
-| `rbac:manage` | Role/permission APIs, user–role assignment |
-| `posts:read` / `posts:write` | Posts and post–taxonomy links |
+| `rbac:manage` | Role/permission APIs, user-role assignment |
+| `posts:read` / `posts:write` | Posts and post-taxonomy links |
 | `pages:read` / `pages:write` | Pages |
 | `categories:read` / `categories:write` | Categories |
 | `tags:read` / `tags:write` | Tags |
@@ -41,7 +41,7 @@ Source: `pkg/seed/rbac_defaults.go`.
 | `menus:read` / `menus:write` | Menus and items |
 | `plugins:manage` | Plugin admin endpoints |
 
-After seeding, assign `admin` to a user via RBAC APIs or optional bootstrap — see [`ROADMAP.md`](ROADMAP.md) (RBAC).
+After seeding, assign `admin` to a user via RBAC APIs or optional bootstrap - see [`ROADMAP.md`](ROADMAP.md) (RBAC).
 
 ## Deploy
 

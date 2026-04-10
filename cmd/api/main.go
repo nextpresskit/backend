@@ -279,7 +279,7 @@ UPDATE posts
 		engine.StaticFS(mediaCfg.PublicBaseURL, gin.Dir(mediaCfg.StorageDir, false))
 	}
 
-	// Admin/content APIs (Phase 3–4): protected, used by CMS/admin UI.
+	// Admin/content APIs (Phase 3-4): protected, used by CMS/admin UI.
 	admin := v1.Group("/admin")
 	// Rate limit is applied before auth so abuse without valid tokens is also
 	// throttled.

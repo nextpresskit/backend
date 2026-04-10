@@ -1,4 +1,4 @@
-# NextPress Backend — developer tasks
+# NextPress Backend - developer tasks
 #
 # Requires: Go (see go.mod), PostgreSQL for migrate/seed/run.
 # Config: copy .env.example to .env (DB_*, JWT_*, etc.).

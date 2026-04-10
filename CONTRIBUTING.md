@@ -21,16 +21,16 @@ Fix or explain any failures.
 
 ## Documentation (living docs)
 
-Keep narrative and tasks honest when behavior or priorities change—**prefer the same PR** as the code.
+Keep narrative and tasks honest when behavior or priorities change - **prefer the same PR** as the code.
 
 | When you… | Update… |
 |-----------|---------|
-| Ship or cancel a scoped feature | [`docs/TODO.md`](docs/TODO.md) — set **`[x]`** / **`[ ]`** for the lines you touch (full checklist) |
+| Ship or cancel a scoped feature | [`docs/TODO.md`](docs/TODO.md) - set **`[x]`** / **`[ ]`** for the lines you touch (full checklist) |
 | Change product direction or major capability | [`docs/ROADMAP.md`](docs/ROADMAP.md) (**Shipped** / **In progress** / **Later**) |
 | Add RBAC codes or seed data | [`docs/SEEDING.md`](docs/SEEDING.md) and `pkg/seed` |
 | Change deploy steps or branches | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
 
-See also: [docs/README.md](docs/README.md) — especially **How these docs connect**. Full checklist: [docs/TODO.md](docs/TODO.md).
+See also: [docs/README.md](docs/README.md) - especially **How these docs connect**. Full checklist: [docs/TODO.md](docs/TODO.md).
 
 ## Branches and servers
 

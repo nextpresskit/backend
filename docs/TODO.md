@@ -33,7 +33,7 @@
 
 ## RBAC
 
-- [x] Roles, permissions, user–role, role–permission schema
+- [x] Roles, permissions, user-role, role-permission schema
 - [x] Permission middleware (`RequirePermission`)
 - [x] `GET /v1/admin/ping` (`admin:ping`)
 - [x] `GET/POST /v1/admin/roles`, permissions, grant to role, assign role to user (`rbac:manage`)
@@ -42,7 +42,7 @@
 
 ---
 
-## Posts — core
+## Posts - core
 
 - [x] Admin list/create/get/update/delete posts (`posts:read` / `posts:write`)
 - [x] `PUT` categories / tags on post
@@ -118,7 +118,7 @@
 
 - [x] gqlgen wiring; `post`, `posts`, `page(slug)` queries
 - [x] Playground when `APP_ENV` local/dev and flag on
-- [ ] **Parity** with REST: categories, tags, menus, search, mutations, auth, admin types — as you define scope
+- [ ] **Parity** with REST: categories, tags, menus, search, mutations, auth, admin types - as you define scope
 - [ ] Document intended GraphQL vs REST split in [`README.md`](README.md) (docs index) or an ADR
 
 ---
@@ -142,7 +142,7 @@
 - [x] Single-instance rate limits
 - [ ] **Shared** rate-limit store (e.g. **Redis**) for horizontal scale
 - [ ] **Metrics** (Prometheus/OpenTelemetry) beyond logs
-- [ ] **Health** variants (deep checks: DB, ES) — refine if needed
+- [ ] **Health** variants (deep checks: DB, ES) - refine if needed
 - [ ] **Version** string in logs/binary aligned with tags/releases (`cmd/api` currently embeds a static label)
 
 ---
