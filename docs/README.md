@@ -7,7 +7,7 @@ This folder contains the longer-form docs. For quick start, configuration, and c
 | Document | Use it when you need… |
 |----------|------------------------|
 | [PHASES.md](PHASES.md) | The roadmap: what’s implemented and what to build next |
-| [openapi.yaml](openapi.yaml) | The API contract (routes + schemas) |
+| [openapi.yaml](openapi.yaml) | The API contract (routes + schemas); optional GraphQL is separate — see `internal/graphql/schema.graphqls` |
 | [SEEDING.md](SEEDING.md) | RBAC defaults, seeded role/permission codes, and seeding commands |
 
 ## Working with branches / environments

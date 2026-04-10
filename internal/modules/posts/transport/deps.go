@@ -10,6 +10,12 @@ import (
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/series"
 )
 
+// PostsElasticsearchBackend is optional Elasticsearch search + post document sync.
+type PostsElasticsearchBackend interface {
+	SearchPostIDs(ctx context.Context, q string, limit, offset int) ([]string, error)
+	SyncPost(ctx context.Context, p *model.Post)
+}
+
 // PostsCore is the application surface for core post CRUD, public reads, and taxonomy.
 type PostsCore interface {
 	Create(ctx context.Context, authorID, title, slug, content string) (*model.Post, error)
@@ -17,6 +23,7 @@ type PostsCore interface {
 	ListFiltered(ctx context.Context, limit, offset int, status string, authorID string, q string) ([]model.Post, error)
 	PublicList(ctx context.Context, limit, offset int, q string, categoryID string, tagID string) ([]model.Post, error)
 	PublicGetBySlug(ctx context.Context, slug string) (*model.Post, error)
+	ReindexPublishedForSearch(ctx context.Context, sync func(context.Context, *model.Post)) (int, error)
 	Update(ctx context.Context, id, title, slug, content, status string) (*model.Post, error)
 	Save(ctx context.Context, p *model.Post) (*model.Post, error)
 	Delete(ctx context.Context, id string) error
@@ -65,10 +72,20 @@ type TranslationGroupsAdmin interface {
 
 // NewHandler wires the posts HTTP layer to focused application services.
 func NewHandler(core PostsCore, sub PostsSubresources, series SeriesAdmin, groups TranslationGroupsAdmin) *Handler {
-	return &Handler{core: core, sub: sub, series: series, groups: groups}
+	return NewHandlerWithOptionalSearch(core, sub, series, groups, nil)
+}
+
+// NewHandlerWithOptionalSearch adds an Elasticsearch-backed search implementation when non-nil.
+func NewHandlerWithOptionalSearch(core PostsCore, sub PostsSubresources, series SeriesAdmin, groups TranslationGroupsAdmin, es PostsElasticsearchBackend) *Handler {
+	return &Handler{core: core, sub: sub, series: series, groups: groups, esBackend: es}
 }
 
 // NewHandlerFromService adapts the façade service to transport dependencies.
 func NewHandlerFromService(svc *postApp.Service) *Handler {
-	return NewHandler(svc.CorePostsService, svc.PostSubresourcesService, svc.SeriesService, svc.TranslationGroupsService)
+	return NewHandlerFromServiceWithOptionalSearch(svc, nil)
+}
+
+// NewHandlerFromServiceWithOptionalSearch passes a non-nil es value when Elasticsearch is enabled.
+func NewHandlerFromServiceWithOptionalSearch(svc *postApp.Service, es PostsElasticsearchBackend) *Handler {
+	return NewHandlerWithOptionalSearch(svc.CorePostsService, svc.PostSubresourcesService, svc.SeriesService, svc.TranslationGroupsService, es)
 }

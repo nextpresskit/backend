@@ -1,13 +1,16 @@
 package transport
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
@@ -15,10 +18,11 @@ import (
 )
 
 type Handler struct {
-	core   PostsCore
-	sub    PostsSubresources
-	series SeriesAdmin
-	groups TranslationGroupsAdmin
+	core      PostsCore
+	sub       PostsSubresources
+	series    SeriesAdmin
+	groups    TranslationGroupsAdmin
+	esBackend PostsElasticsearchBackend
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup, auth gin.HandlerFunc, requirePerm func(string) gin.HandlerFunc) {
@@ -38,6 +42,11 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup, auth gin.HandlerFunc, requ
 		auth,
 		requirePerm("posts:write"),
 		h.create,
+	)
+	posts.POST("/search/reindex",
+		auth,
+		requirePerm("posts:write"),
+		h.adminSearchReindex,
 	)
 	posts.PUT("/:id",
 		auth,
@@ -186,6 +195,7 @@ func (h *Handler) setMetrics(c *gin.Context) {
 
 func (h *Handler) RegisterPublicRoutes(rg *gin.RouterGroup) {
 	posts := rg.Group("/posts")
+	posts.GET("/search", h.publicSearch)
 	posts.GET("", h.publicList)
 	posts.GET("/:slug", h.publicGetBySlug)
 }
@@ -333,6 +343,52 @@ func (h *Handler) publicList(c *gin.Context) {
 	for i := range posts {
 		p := posts[i]
 		out = append(out, postToJSON(&p))
+	}
+	c.JSON(http.StatusOK, gin.H{"posts": out})
+}
+
+func (h *Handler) adminSearchReindex(c *gin.Context) {
+	if h.esBackend == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "search_disabled"})
+		return
+	}
+	n, err := h.core.ReindexPublishedForSearch(c.Request.Context(), func(ctx context.Context, p *model.Post) {
+		h.esBackend.SyncPost(ctx, p)
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "reindex_failed"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"reindexed": n})
+}
+
+func (h *Handler) publicSearch(c *gin.Context) {
+	if h.esBackend == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "search_disabled"})
+		return
+	}
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_query"})
+		return
+	}
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	offset, _ := strconv.Atoi(c.Query("offset"))
+	ids, err := h.esBackend.SearchPostIDs(c.Request.Context(), q, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "search_failed"})
+		return
+	}
+	out := make([]gin.H, 0, len(ids))
+	for _, id := range ids {
+		p, err := h.core.GetByID(c.Request.Context(), id)
+		if err != nil || p == nil {
+			continue
+		}
+		if p.Status != ident.StatusPublished || p.DeletedAt != nil {
+			continue
+		}
+		out = append(out, postToJSON(p))
 	}
 	c.JSON(http.StatusOK, gin.H{"posts": out})
 }

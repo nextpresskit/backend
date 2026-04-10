@@ -153,6 +153,31 @@ func (s *CorePostsService) PublicGetBySlug(ctx context.Context, slug string) (*m
 	return p, nil
 }
 
+// ReindexPublishedForSearch walks all published posts in pages of pageSize and calls sync for each (e.g. Elasticsearch).
+func (s *CorePostsService) ReindexPublishedForSearch(ctx context.Context, sync func(context.Context, *model.Post)) (int, error) {
+	const pageSize = 100
+	var total int
+	offset := 0
+	for {
+		list, err := s.repo.ListPublished(ctx, pageSize, offset, "", "", "")
+		if err != nil {
+			return total, err
+		}
+		if len(list) == 0 {
+			break
+		}
+		for i := range list {
+			sync(ctx, &list[i])
+			total++
+		}
+		if len(list) < pageSize {
+			break
+		}
+		offset += pageSize
+	}
+	return total, nil
+}
+
 func (s *CorePostsService) Update(ctx context.Context, id, title, slug, content, status string) (*model.Post, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
@@ -288,7 +313,23 @@ func (s *CorePostsService) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return ErrPostNotFound
 	}
-	return s.repo.Delete(ctx, ident.PostID(id))
+	p, err := s.repo.FindByID(ctx, ident.PostID(id))
+	if err != nil {
+		return err
+	}
+	if p == nil {
+		return ErrPostNotFound
+	}
+	slug := p.Slug
+	if err := s.repo.Delete(ctx, ident.PostID(id)); err != nil {
+		return err
+	}
+	if s.hooks != nil {
+		if err := s.hooks.AfterPostSave(ctx, id, slug); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *CorePostsService) SetCategories(ctx context.Context, postID string, categoryIDs []string) error {

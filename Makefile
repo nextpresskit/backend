@@ -8,7 +8,7 @@ BINARY_NAME=server
 MIGRATE_BINARY=migrate
 SEED_BINARY=seed
 
-.PHONY: all build run clean test migrate-up migrate-down migrate-steps migrate-drop migrate-version seed seed-build db-fresh help tidy deps
+.PHONY: all build run clean test migrate-up migrate-down migrate-steps migrate-drop migrate-version seed seed-build db-fresh help tidy deps graphql
 
 ## help: Display this help message
 help:
@@ -98,3 +98,7 @@ tidy:
 ## deps: Download dependencies
 deps:
 	go mod download
+
+## graphql: Regenerate code from internal/graphql/schema.graphqls (gqlgen)
+graphql:
+	go run github.com/99designs/gqlgen generate

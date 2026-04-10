@@ -44,7 +44,13 @@ func (m *mockPostsCore) Create(_ context.Context, _, _, _, _ string) (*model.Pos
 	return nil, postsApp.ErrInvalidPost
 }
 
-func (m *mockPostsCore) GetByID(_ context.Context, _ string) (*model.Post, error) {
+func (m *mockPostsCore) GetByID(_ context.Context, id string) (*model.Post, error) {
+	for i := range m.published {
+		if string(m.published[i].ID) == id {
+			p := m.published[i]
+			return &p, nil
+		}
+	}
 	return nil, postsApp.ErrPostNotFound
 }
 
@@ -78,6 +84,17 @@ func (m *mockPostsCore) PublicGetBySlug(_ context.Context, slug string) (*model.
 		}
 	}
 	return nil, postsApp.ErrPostNotFound
+}
+
+func (m *mockPostsCore) ReindexPublishedForSearch(_ context.Context, sync func(context.Context, *model.Post)) (int, error) {
+	var n int
+	for i := range m.published {
+		if m.published[i].Status == ident.StatusPublished {
+			sync(context.Background(), &m.published[i])
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (m *mockPostsCore) Update(_ context.Context, _, _, _, _, _ string) (*model.Post, error) {
@@ -159,6 +176,79 @@ func TestPublicPostsRoute_ReturnsPublishedPosts(t *testing.T) {
 	}
 	if out.Posts[0].Status != string(ident.StatusPublished) {
 		t.Fatalf(`expected status "published", got %q`, out.Posts[0].Status)
+	}
+}
+
+type mockESSearch struct {
+	ids []string
+	err error
+}
+
+func (m *mockESSearch) SearchPostIDs(_ context.Context, _ string, _, _ int) ([]string, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.ids, nil
+}
+
+func (m *mockESSearch) SyncPost(_ context.Context, _ *model.Post) {}
+
+func TestPublicPostsSearch_Disabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	core := &mockPostsCore{}
+	h := NewHandler(core, stubPostsSubresources{}, stubSeriesAdmin{}, stubTranslationGroupsAdmin{})
+	router := gin.New()
+	v1 := router.Group("/v1")
+	h.RegisterPublicRoutes(v1)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/posts/search?q=test", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusNotImplemented {
+		t.Fatalf("expected 501, got %d", w.Code)
+	}
+}
+
+func TestPublicPostsSearch_WithElasticsearch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	now := time.Now().UTC()
+	core := &mockPostsCore{
+		published: []model.Post{
+			{
+				ID:          ident.PostID("p1"),
+				AuthorID:    "a1",
+				Title:       "Hello",
+				Slug:        "hello",
+				Content:     "content",
+				Status:      ident.StatusPublished,
+				PublishedAt: &now,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+	}
+	es := &mockESSearch{ids: []string{"p1"}}
+	h := NewHandlerWithOptionalSearch(core, stubPostsSubresources{}, stubSeriesAdmin{}, stubTranslationGroupsAdmin{}, es)
+	router := gin.New()
+	v1 := router.Group("/v1")
+	h.RegisterPublicRoutes(v1)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/posts/search?q=hello", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var out struct {
+		Posts []struct {
+			Slug string `json:"slug"`
+		} `json:"posts"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Posts) != 1 || out.Posts[0].Slug != "hello" {
+		t.Fatalf("unexpected posts: %+v", out.Posts)
 	}
 }
 

@@ -5,14 +5,20 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	gqlhandler "github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
+	gqlapi "github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql"
+	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/generated"
 	platformDatabase "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/database"
+	platformES "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/elasticsearch"
 	platformLogger "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/logger"
 	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/server"
@@ -33,6 +39,7 @@ import (
 	pagesInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/infrastructure"
 	pagesTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/transport"
 	postsApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
+	postsIdent "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
 	postsInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/infrastructure"
 	postsTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/transport"
 	rbacApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/application"
@@ -74,6 +81,8 @@ func main() {
 	rbacCfg := config.LoadRBACConfig()
 	mediaCfg := config.LoadMediaConfig()
 	rateCfg := config.LoadRateLimitConfig()
+	graphqlCfg := config.LoadGraphQLConfig()
+	esCfg := config.LoadElasticsearchConfig(appCfg.Env)
 
 	// Initialize a single database connection for the lifetime of the process.
 	// This avoids connection storms and keeps pooling behaviour predictable.
@@ -115,12 +124,56 @@ func main() {
 
 	postsRepo := postsInfra.NewRepositoryAdapter(postsInfra.NewGormRepository(db))
 	derivedHook := postsApp.NewDerivedFieldsHook(postsRepo)
+
+	esClient, err := platformES.NewClient(esCfg)
+	if err != nil {
+		logger.Fatalw("failed to create elasticsearch client",
+			"error", err,
+		)
+	}
+	if esClient != nil && esCfg.Enabled {
+		if pingErr := platformES.Ping(ctx, esClient); pingErr != nil {
+			logger.Warnw("elasticsearch ping failed; search and indexing may fail until the cluster is reachable",
+				"error", pingErr,
+			)
+		}
+	}
+	if esCfg.Enabled && len(esCfg.Addresses) == 0 {
+		logger.Warnw("ELASTICSEARCH_ENABLED is true but ELASTICSEARCH_URLS is empty; indexing and search are inactive")
+	}
+	postsIdx := platformES.NewPostsIndex(esClient, esCfg, logger)
+	if postsIdx != nil {
+		logger.Infow("elasticsearch integration active",
+			"index", postsIdx.Name(),
+			"nodes", len(esCfg.Addresses),
+		)
+	}
+	if postsIdx != nil && esCfg.AutoCreateIndex {
+		if err := postsIdx.EnsureIndex(ctx); err != nil {
+			logger.Fatalw("elasticsearch index setup failed",
+				"error", err,
+			)
+		}
+	}
+	esHook := platformES.NewPostIndexHook(logger, postsIdx, postsRepo)
 	hooks := postsApp.NewPostSaveChain(derivedHook, postHooks)
+	if esHook != nil {
+		hooks = postsApp.NewPostSaveChain(derivedHook, postHooks, esHook)
+	}
 	postsService := postsApp.NewService(postsRepo, hooks)
-	postsHandler := postsTransport.NewHandlerFromService(postsService)
+	postsHandler := postsTransport.NewHandlerFromServiceWithOptionalSearch(postsService, postsIdx)
 
 	// Background loop: promote scheduled posts when due.
 	go func() {
+		const scheduledPublishSQL = `
+UPDATE posts
+ SET status = 'published',
+     published_at = COALESCE(published_at, NOW()),
+     workflow_stage = 'published',
+     updated_at = NOW()
+ WHERE scheduled_publish_at IS NOT NULL
+   AND scheduled_publish_at <= NOW()
+   AND status <> 'published'`
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 		for {
@@ -128,23 +181,43 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				res := db.WithContext(ctx).Exec(
-					`UPDATE posts
-					 SET status = 'published',
-					     published_at = COALESCE(published_at, NOW()),
-					     workflow_stage = 'published',
-					     updated_at = NOW()
-					 WHERE scheduled_publish_at IS NOT NULL
-					   AND scheduled_publish_at <= NOW()
-					   AND status <> 'published'`,
-				)
-				if res.Error != nil {
-					logger.Errorw("scheduled publish loop failed", "error", res.Error)
+				if postsIdx == nil {
+					res := db.WithContext(ctx).Exec(scheduledPublishSQL)
+					if res.Error != nil {
+						logger.Errorw("scheduled publish loop failed", "error", res.Error)
+						continue
+					}
+					if res.RowsAffected > 0 {
+						logger.Infow("scheduled posts promoted", "count", res.RowsAffected)
+					}
 					continue
 				}
-				if res.RowsAffected > 0 {
-					logger.Infow("scheduled posts promoted", "count", res.RowsAffected)
+				rows, qerr := db.WithContext(ctx).Raw(scheduledPublishSQL + ` RETURNING id`).Rows()
+				if qerr != nil {
+					logger.Errorw("scheduled publish loop failed", "error", qerr)
+					continue
 				}
+				func() {
+					defer rows.Close()
+					var n int64
+					for rows.Next() {
+						var id string
+						if scanErr := rows.Scan(&id); scanErr != nil {
+							logger.Errorw("scheduled publish scan failed", "error", scanErr)
+							return
+						}
+						n++
+						p, findErr := postsRepo.FindByID(ctx, postsIdent.PostID(id))
+						if findErr != nil || p == nil {
+							logger.Warnw("scheduled publish post reload failed", "post_id", id, "error", findErr)
+							continue
+						}
+						postsIdx.SyncPost(ctx, p)
+					}
+					if n > 0 {
+						logger.Infow("scheduled posts promoted", "count", n)
+					}
+				}()
 			}
 		}
 	}()
@@ -285,6 +358,39 @@ func main() {
 
 			c.JSON(200, gin.H{"ok": true})
 		})
+	}
+
+	if graphqlCfg.Enabled {
+		gqlSrv := gqlhandler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+			Resolvers: &gqlapi.Resolver{
+				PostsCore: postsService.CorePostsService,
+				Pages:     pagesService,
+			},
+		}))
+		path := strings.TrimSpace(graphqlCfg.Path)
+		if path == "" {
+			path = "/v1/graphql"
+		}
+		engine.POST(path, publicLimiter.Middleware("public"), func(c *gin.Context) {
+			gqlSrv.ServeHTTP(c.Writer, c.Request)
+		})
+		engine.GET(path, publicLimiter.Middleware("public"), func(c *gin.Context) {
+			gqlSrv.ServeHTTP(c.Writer, c.Request)
+		})
+		envLower := strings.ToLower(strings.TrimSpace(appCfg.Env))
+		playgroundOK := graphqlCfg.PlaygroundEnabled && (envLower == "local" || envLower == "dev")
+		if graphqlCfg.PlaygroundEnabled && !playgroundOK {
+			logger.Warnw("GRAPHQL_PLAYGROUND_ENABLED ignored outside local/dev app environments",
+				"app_env", appCfg.Env,
+			)
+		}
+		if playgroundOK {
+			engine.GET(path+"/playground", gin.WrapH(playground.Handler("GraphQL playground", path)))
+		}
+		logger.Infow("graphql endpoint enabled",
+			"path", path,
+			"playground", playgroundOK,
+		)
 	}
 
 	// The Server holds the application configuration and shared dependencies

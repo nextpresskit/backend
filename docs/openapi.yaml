@@ -375,6 +375,52 @@ paths:
               schema:
                 $ref: "#/components/schemas/errorResponse"
 
+  /v1/posts/search:
+    get:
+      tags: [public]
+      description: Elasticsearch full-text search (requires ELASTICSEARCH_ENABLED); returns 501 with search_disabled when disabled
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: same shape as GET /v1/posts list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/post"
+                required: [posts]
+        "400":
+          description: missing q
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
+        "501":
+          description: Elasticsearch not enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
+
   /v1/posts/{slug}:
     get:
       tags: [public]
@@ -527,6 +573,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/post"
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
+
+  /v1/admin/posts/search/reindex:
+    post:
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      description: Rebuilds the Elasticsearch index for all published posts. Requires `posts:write` and ELASTICSEARCH_ENABLED; returns 501 when search is disabled.
+      responses:
+        "200":
+          description: reindexed count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reindexed: { type: integer }
+                required: [reindexed]
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
+        "501":
+          description: Elasticsearch not enabled for this process
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
+        "500":
           content:
             application/json:
               schema:

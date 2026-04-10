@@ -51,6 +51,9 @@ make migrate-version
 make db-fresh   # dangerous: drops all tables
 
 make seed
+
+# Regenerate GraphQL code after schema changes (requires gqlgen)
+make graphql
 ```
 
 ## Configuration (.env)
@@ -63,12 +66,15 @@ Primary reference is `.env.example` (all variables, with short notes). Highlight
 - **RBAC bootstrap** (optional): `RBAC_BOOTSTRAP_ENABLED=true` enables `POST /v1/admin/bootstrap/claim-admin`
 - **Media**: `MEDIA_STORAGE_DIR`, `MEDIA_PUBLIC_BASE_URL`, `MEDIA_MAX_UPLOAD_BYTES`
 - **Rate limiting**: `RATE_LIMIT_ENABLED`, `RATE_LIMIT_*_MAX_PER_MINUTE`
+- **GraphQL** (optional): `GRAPHQL_ENABLED`, `GRAPHQL_PATH`, `GRAPHQL_PLAYGROUND_ENABLED` (playground only mounts when `APP_ENV` is `local` or `dev`) — schema in `internal/graphql/schema.graphqls` (not in OpenAPI)
+- **Elasticsearch** (optional): `ELASTICSEARCH_ENABLED`, `ELASTICSEARCH_URLS`, `ELASTICSEARCH_INDEX_PREFIX`, auth (`ELASTICSEARCH_API_KEY` or user/password), `ELASTICSEARCH_AUTO_CREATE_INDEX` — see `docs/deployment/local.md`
 
 ## API overview
 
 - **Auth**: `POST /v1/auth/register`, `/v1/auth/login`, `/v1/auth/refresh`
-- **Public read** (no auth): `GET /v1/posts`, `/v1/posts/:slug`, `/v1/pages/:slug`, `/v1/menus/:slug`
-- **Admin**: `/v1/admin/*` (JWT + permission checks)
+- **Public read** (no auth): `GET /v1/posts`, `/v1/posts/:slug`, `GET /v1/posts/search` (when Elasticsearch is enabled), `/v1/pages/:slug`, `/v1/menus/:slug`
+- **GraphQL** (no auth for read-only queries when enabled): `post`, `posts`, `page(slug)` — `POST`/`GET` on `GRAPHQL_PATH` (default `/v1/graphql`)
+- **Admin**: `/v1/admin/*` (JWT + permission checks); optional `POST /v1/admin/posts/search/reindex` when Elasticsearch is enabled (`posts:write`)
 
 Full list and schemas are in `docs/openapi.yaml`.
 
