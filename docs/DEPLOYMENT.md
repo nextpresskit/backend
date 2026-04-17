@@ -1,6 +1,6 @@
 # Deployment
 
-How to run NextPress Backend on **Ubuntu** behind **Nginx** and **systemd**, using **`scripts/deploy`**. For laptop-only development, use [Local development](deployment/local.md).
+How to run NextPress Backend on **Ubuntu** behind **Nginx** and **systemd**, using **`scripts/deploy`**. For development on your own machine (foreground `make run` or optional local Nginx/systemd), see [Local development](deployment/local.md).
 
 ## Contents
 

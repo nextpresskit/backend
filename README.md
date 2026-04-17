@@ -46,7 +46,7 @@ make seed
 make graphql           # after editing internal/graphql/schema.graphqls
 ```
 
-Configuration: [`.env.example`](.env.example). Optional Elasticsearch / GraphQL notes: [`docs/deployment/local.md`](docs/deployment/local.md).
+Configuration: [`.env.example`](.env.example). Optional Elasticsearch, GraphQL, Nginx, and systemd on your machine: [`docs/deployment/local.md`](docs/deployment/local.md).
 
 ## API surface (summary)
 
