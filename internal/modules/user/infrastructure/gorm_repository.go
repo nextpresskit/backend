@@ -20,6 +20,10 @@ type gormUser struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
+func (gormUser) TableName() string {
+	return "users"
+}
+
 type GormRepository struct {
 	db *gorm.DB
 }
