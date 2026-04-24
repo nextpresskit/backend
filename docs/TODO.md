@@ -135,9 +135,9 @@
 - [x] Auth application service unit tests (register/login/refresh paths)
 - [x] RBAC application service unit tests (roles/permissions/assignments)
 - [ ] **Unit tests** for: `auth`, `rbac`, `user`, `pages`, `taxonomy`, `media`, `menus`, `plugins` transport/application (most modules)
-- [ ] **Integration tests** with real Postgres (docker or CI service)
-- [ ] **CI workflow** (GitHub Actions or other): `go test`, `go vet`, optional `golangci-lint`
-- [ ] **OpenAPI** validation / drift check vs router (optional tooling)
+- [x] **Integration tests** with real Postgres (docker or CI service)
+- [x] **CI workflow** (GitHub Actions or other): `go test`, `go vet`, optional `golangci-lint`
+- [x] **OpenAPI** validation / drift check vs router (optional tooling)
 
 ---
 

@@ -17,6 +17,20 @@ jobs:
   test:
     name: Build and test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nextpress_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nextpress_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -39,4 +53,26 @@ jobs:
 
       - name: Run tests
         run: go test ./...
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run integration tests (Postgres)
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "5432"
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: nextpress_test
+          DB_SSLMODE: disable
+        run: make test-integration
+
+      - name: Validate OpenAPI spec
+        run: go run github.com/getkin/kin-openapi/cmd/validate@latest ./docs/openapi.yaml
+
+      - name: Run golangci-lint (optional)
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
 

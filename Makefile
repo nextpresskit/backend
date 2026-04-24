@@ -12,7 +12,7 @@ SEED_BINARY   := seed
 MIGRATE_CMD ?= up
 
 .PHONY: help all build run clean \
-	test test-coverage tidy deps graphql \
+	test test-coverage test-integration tidy deps graphql \
 	seed seed-build \
 	migrate-up migrate-down migrate-steps migrate-drop migrate-version db-fresh
 
@@ -92,6 +92,10 @@ test:
 ## test-coverage: Run tests with coverage summary
 test-coverage:
 	go test -cover ./...
+
+## test-integration: Run integration tests that require real services (Postgres)
+test-integration:
+	go test -tags=integration -v ./internal/platform/database
 
 ## tidy: go mod tidy
 tidy:
