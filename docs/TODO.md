@@ -138,6 +138,7 @@
 - [x] Taxonomy application service unit tests (category/tag create/update paths)
 - [x] Menus application service unit tests (menu/item validation paths)
 - [x] Plugins application service unit tests (register/update validation paths)
+- [x] Media application service unit tests (upload/get/list validation paths)
 - [ ] **Unit tests** for: `auth`, `rbac`, `user`, `pages`, `taxonomy`, `media`, `menus`, `plugins` transport/application (most modules)
 - [x] **Integration tests** with real Postgres (docker or CI service)
 - [x] **CI workflow** (GitHub Actions or other): `go test`, `go vet`, optional `golangci-lint`
