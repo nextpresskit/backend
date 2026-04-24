@@ -134,6 +134,8 @@
 - [x] Config tests (GraphQL / ES-related)
 - [x] Auth application service unit tests (register/login/refresh paths)
 - [x] RBAC application service unit tests (roles/permissions/assignments)
+- [x] Pages application service unit tests (create/update validation paths)
+- [x] Taxonomy application service unit tests (category/tag create/update paths)
 - [ ] **Unit tests** for: `auth`, `rbac`, `user`, `pages`, `taxonomy`, `media`, `menus`, `plugins` transport/application (most modules)
 - [x] **Integration tests** with real Postgres (docker or CI service)
 - [x] **CI workflow** (GitHub Actions or other): `go test`, `go vet`, optional `golangci-lint`
