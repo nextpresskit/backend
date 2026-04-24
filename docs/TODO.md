@@ -147,7 +147,7 @@
 
 - [x] Single-instance rate limits
 - [ ] **Shared** rate-limit store (e.g. **Redis**) for horizontal scale
-- [ ] **Metrics** (Prometheus/OpenTelemetry) beyond logs
+- [x] **Metrics** (Prometheus/OpenTelemetry) beyond logs
 - [x] **Health** variants (deep checks: DB, ES) - refine if needed
 - [x] **Version** string in logs/binary aligned with tags/releases (`cmd/api` currently embeds a static label)
 

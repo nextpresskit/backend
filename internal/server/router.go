@@ -3,10 +3,14 @@ package server
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -17,6 +21,24 @@ type ReadinessCheck struct {
 	Name  string
 	Check func(context.Context) error
 }
+
+var (
+	httpRequestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "nextpress_http_requests_total",
+			Help: "Total HTTP requests handled by NextPress.",
+		},
+		[]string{"method", "route", "status"},
+	)
+	httpRequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "nextpress_http_request_duration_seconds",
+			Help:    "HTTP request duration in seconds.",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "route", "status"},
+	)
+)
 
 // ConfigureEngine applies global middleware and registers all top-level routes.
 // Feature modules will later plug into the provided router via dedicated
@@ -32,6 +54,8 @@ func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger, db *gorm.DB, ap
 	engine.Use(gin.Recovery())
 	engine.Use(platformMiddleware.RequestIDMiddleware())
 	engine.Use(requestLoggingMiddleware(log))
+	engine.Use(metricsMiddleware())
+	engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	engine.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -135,6 +159,23 @@ func requestLoggingMiddleware(log *zap.SugaredLogger) gin.HandlerFunc {
 			"user_id", userID,
 			"latency_ms", latencyMs,
 		)
+	}
+}
+
+func metricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+
+		route := c.FullPath()
+		if route == "" {
+			route = "unmatched"
+		}
+		status := strconv.Itoa(c.Writer.Status())
+		method := c.Request.Method
+
+		httpRequestsTotal.WithLabelValues(method, route, status).Inc()
+		httpRequestDuration.WithLabelValues(method, route, status).Observe(time.Since(start).Seconds())
 	}
 }
 
