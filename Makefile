@@ -14,7 +14,8 @@ MIGRATE_CMD ?= up
 .PHONY: help all build run clean \
 	test test-coverage test-integration tidy deps graphql \
 	seed seed-build \
-	migrate-up migrate-down migrate-steps migrate-drop migrate-version db-fresh
+	migrate-up migrate-down migrate-steps migrate-drop migrate-version db-fresh \
+	security-check
 
 ## help: List targets and short descriptions
 help:
@@ -104,6 +105,10 @@ tidy:
 ## deps: go mod download
 deps:
 	go mod download
+
+## security-check: Run dependency vulnerability scan (govulncheck)
+security-check:
+	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 ## graphql: Regenerate gqlgen code from internal/graphql/schema.graphqls
 graphql:

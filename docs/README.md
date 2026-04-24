@@ -9,6 +9,7 @@ How this folder is organised (aligned with [Diátaxis](https://diataxis.fr/): tu
 | **How-to** | [Local development](deployment/local.md) | Laptop setup, optional Nginx/systemd, ES/GraphQL, tests. |
 | **How-to** | [Elasticsearch operations runbook](ELASTICSEARCH_OPERATIONS.md) | Index templates, upgrades/reindex, multi-cluster operations. |
 | **How-to** | [Database seeding](SEEDING.md) | Run seeders, RBAC defaults, permission codes. |
+| **How-to** | [Security and hardening](SECURITY.md) | CVE review, CORS policy, rate-limit tuning, JWT rotation guidance. |
 | **Reference** | [`openapi.yaml`](openapi.yaml) | REST paths, request/response schemas. |
 | **Reference** | [`internal/graphql/schema.graphqls`](../internal/graphql/schema.graphqls) | GraphQL schema (not in OpenAPI). |
 | **Explanation** | [GraphQL vs REST split](../README.md#graphql-vs-rest-split) | Contract boundary: REST-first, GraphQL optional/read-focused. |

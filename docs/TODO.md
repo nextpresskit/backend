@@ -169,10 +169,10 @@
 
 ## Security & hardening (ongoing)
 
-- [ ] Periodic dependency / CVE review (`go mod`, govulncheck)
-- [ ] Security headers, CORS policy documented per deployment
-- [ ] Rate-limit tuning and abuse-case tests
-- [ ] JWT key rotation story (if beyond single `JWT_SECRET`)
+- [x] Periodic dependency / CVE review (`go mod`, govulncheck)
+- [x] Security headers, CORS policy documented per deployment
+- [x] Rate-limit tuning and abuse-case tests
+- [x] JWT key rotation story (if beyond single `JWT_SECRET`)
 
 ---
 
