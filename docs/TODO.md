@@ -120,7 +120,7 @@
 - [x] Playground when `APP_ENV` local/dev and flag on
 - [x] Public read parity slice: `categories`, `tags`, `menu(slug)`, `searchPosts(q)` queries
 - [ ] **Parity** with REST: categories, tags, menus, search, mutations, auth, admin types - as you define scope
-- [ ] Document intended GraphQL vs REST split in [`README.md`](README.md) (docs index) or an ADR
+- [x] Document intended GraphQL vs REST split in [`README.md`](README.md) (docs index) or an ADR
 
 ---
 
