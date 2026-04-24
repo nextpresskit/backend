@@ -12,6 +12,8 @@ How this folder is organised (aligned with [Diátaxis](https://diataxis.fr/): tu
 | **Reference** | [`openapi.yaml`](openapi.yaml) | REST paths, request/response schemas. |
 | **Reference** | [`internal/graphql/schema.graphqls`](../internal/graphql/schema.graphqls) | GraphQL schema (not in OpenAPI). |
 | **Explanation** | [GraphQL vs REST split](../README.md#graphql-vs-rest-split) | Contract boundary: REST-first, GraphQL optional/read-focused. |
+| **Reference** | [Root `CHANGELOG.md`](../CHANGELOG.md) | Release notes process and unreleased entries. |
+| **Explanation** | [ADR folder](adr/README.md) | Architecture decision records process and conventions. |
 | **Reference** | [`.env.example`](../.env.example) | All environment variables. |
 | **Explanation** | [Roadmap](ROADMAP.md) | What is shipped, current themes, future direction. |
 | **Task list** | [TODO](TODO.md) | Full shipped/`[ ]` open checklist; keep in sync with code. |

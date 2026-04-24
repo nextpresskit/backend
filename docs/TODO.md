@@ -179,6 +179,6 @@
 ## Documentation
 
 - [x] Root `README`, `docs/README`, `CONTRIBUTING`, `DEPLOYMENT`, `SEEDING`, `local.md`, `ROADMAP`, this file
-- [ ] **CHANGELOG** or release notes process (optional)
-- [ ] **ADR** folder for big decisions (optional)
+- [x] **CHANGELOG** or release notes process (optional)
+- [x] **ADR** folder for big decisions (optional)
 
