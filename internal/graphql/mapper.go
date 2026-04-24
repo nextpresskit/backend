@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/model"
+	userdomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
 	menudomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/menus/domain"
 	pagedomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/domain"
 	domainmodel "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
@@ -107,5 +108,17 @@ func domainMenuToGQL(m *menudomain.Menu, items []menudomain.MenuItem) *model.Men
 		Name:  m.Name,
 		Slug:  m.Slug,
 		Items: out,
+	}
+}
+
+func domainAuthUserToGQL(u *userdomain.User) *model.AuthUser {
+	if u == nil {
+		return nil
+	}
+	return &model.AuthUser{
+		ID:        string(u.ID),
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Email:     u.Email,
 	}
 }

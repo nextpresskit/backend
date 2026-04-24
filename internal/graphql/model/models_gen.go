@@ -2,10 +2,27 @@
 
 package model
 
+type AuthTokens struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+}
+
+type AuthUser struct {
+	ID        string `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
+}
+
 type Category struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
+}
+
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type Menu struct {
@@ -23,6 +40,9 @@ type MenuItem struct {
 	RefID     *string `json:"refId,omitempty"`
 	URL       *string `json:"url,omitempty"`
 	SortOrder int     `json:"sortOrder"`
+}
+
+type Mutation struct {
 }
 
 type Page struct {
@@ -47,6 +67,17 @@ type PostConnection struct {
 }
 
 type Query struct {
+}
+
+type RefreshInput struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+type RegisterInput struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
 }
 
 type Tag struct {

@@ -8,13 +8,73 @@ package graphql
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/generated"
 	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/model"
+	authApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
 	menuApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/menus/application"
 	pagesApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/application"
 	postApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
 )
+
+// Register is the resolver for the register field.
+func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthUser, error) {
+	if r.Auth == nil {
+		return nil, errors.New("auth_disabled")
+	}
+	if strings.TrimSpace(input.FirstName) == "" || strings.TrimSpace(input.LastName) == "" ||
+		strings.TrimSpace(input.Email) == "" || strings.TrimSpace(input.Password) == "" {
+		return nil, errors.New("invalid_payload")
+	}
+	u, err := r.Auth.Register(ctx, input.FirstName, input.LastName, input.Email, input.Password)
+	if err != nil {
+		return nil, err
+	}
+	return domainAuthUserToGQL(u), nil
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthTokens, error) {
+	if r.Auth == nil {
+		return nil, errors.New("auth_disabled")
+	}
+	if strings.TrimSpace(input.Email) == "" || strings.TrimSpace(input.Password) == "" {
+		return nil, errors.New("invalid_payload")
+	}
+	access, refresh, err := r.Auth.Login(ctx, input.Email, input.Password)
+	if err != nil {
+		if errors.Is(err, authApp.ErrInvalidLogin) {
+			return nil, errors.New("invalid_credentials")
+		}
+		return nil, err
+	}
+	return &model.AuthTokens{
+		AccessToken:  access,
+		RefreshToken: refresh,
+	}, nil
+}
+
+// Refresh is the resolver for the refresh field.
+func (r *mutationResolver) Refresh(ctx context.Context, input model.RefreshInput) (*model.AuthTokens, error) {
+	if r.Auth == nil {
+		return nil, errors.New("auth_disabled")
+	}
+	if strings.TrimSpace(input.RefreshToken) == "" {
+		return nil, errors.New("invalid_payload")
+	}
+	access, refresh, err := r.Auth.Refresh(ctx, input.RefreshToken)
+	if err != nil {
+		if errors.Is(err, authApp.ErrInvalidLogin) {
+			return nil, errors.New("invalid_refresh_token")
+		}
+		return nil, err
+	}
+	return &model.AuthTokens{
+		AccessToken:  access,
+		RefreshToken: refresh,
+	}, nil
+}
 
 // Post is the resolver for the post field.
 func (r *queryResolver) Post(ctx context.Context, slug string) (*model.Post, error) {
@@ -165,7 +225,11 @@ func (r *queryResolver) Menu(ctx context.Context, slug string) (*model.Menu, err
 	return domainMenuToGQL(menu, items), nil
 }
 
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

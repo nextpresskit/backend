@@ -119,6 +119,7 @@
 - [x] gqlgen wiring; `post`, `posts`, `page(slug)` queries
 - [x] Playground when `APP_ENV` local/dev and flag on
 - [x] Public read parity slice: `categories`, `tags`, `menu(slug)`, `searchPosts(q)` queries
+- [x] Auth mutation parity slice: `register`, `login`, `refresh`
 - [ ] **Parity** with REST: categories, tags, menus, search, mutations, auth, admin types - as you define scope
 - [x] Document intended GraphQL vs REST split in [`README.md`](README.md) (docs index) or an ADR
 
@@ -131,6 +132,7 @@
 - [x] Plugins hooks unit test
 - [x] Posts derived-fields hook test
 - [x] Config tests (GraphQL / ES-related)
+- [x] Auth application service unit tests (register/login/refresh paths)
 - [ ] **Unit tests** for: `auth`, `rbac`, `user`, `pages`, `taxonomy`, `media`, `menus`, `plugins` transport/application (most modules)
 - [ ] **Integration tests** with real Postgres (docker or CI service)
 - [ ] **CI workflow** (GitHub Actions or other): `go test`, `go vet`, optional `golangci-lint`

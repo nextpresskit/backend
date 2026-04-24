@@ -363,6 +363,7 @@ UPDATE posts
 	if graphqlCfg.Enabled {
 		gqlSrv := gqlhandler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 			Resolvers: &gqlapi.Resolver{
+				Auth:      authService,
 				PostsCore: postsService.CorePostsService,
 				Pages:     pagesService,
 				Taxonomy:  taxService,

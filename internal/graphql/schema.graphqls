@@ -48,6 +48,34 @@ type Menu {
   items: [MenuItem!]!
 }
 
+type AuthUser {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+}
+
+type AuthTokens {
+  accessToken: String!
+  refreshToken: String!
+}
+
+input RegisterInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  password: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input RefreshInput {
+  refreshToken: String!
+}
+
 type Query {
   post(slug: String!): Post
   posts(limit: Int, offset: Int): PostConnection!
@@ -56,4 +84,10 @@ type Query {
   categories(limit: Int, offset: Int): [Category!]!
   tags(limit: Int, offset: Int): [Tag!]!
   menu(slug: String!): Menu
+}
+
+type Mutation {
+  register(input: RegisterInput!): AuthUser!
+  login(input: LoginInput!): AuthTokens!
+  refresh(input: RefreshInput!): AuthTokens!
 }
