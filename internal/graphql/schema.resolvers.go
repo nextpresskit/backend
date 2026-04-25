@@ -15,6 +15,7 @@ import (
 	authApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
 	pagesApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/application"
 	postApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
+	taxApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/application"
 )
 
 // Register is the resolver for the register field.
@@ -75,6 +76,82 @@ func (r *mutationResolver) Refresh(ctx context.Context, input model.RefreshInput
 		RefreshToken: refresh,
 		User:         domainAuthUserToGQL(u),
 	}, nil
+}
+
+// CreateCategory is the resolver for the createCategory field.
+func (r *mutationResolver) CreateCategory(ctx context.Context, input model.CreateCategoryInput) (*model.Category, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.CreateCategory(ctx, input.Name, input.Slug)
+	if err != nil {
+		return nil, err
+	}
+	return domainCategoryToGQL(out), nil
+}
+
+// UpdateCategory is the resolver for the updateCategory field.
+func (r *mutationResolver) UpdateCategory(ctx context.Context, input model.UpdateCategoryInput) (*model.Category, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.UpdateCategory(ctx, input.ID, valueOrEmpty(input.Name), valueOrEmpty(input.Slug))
+	if err != nil {
+		return nil, err
+	}
+	return domainCategoryToGQL(out), nil
+}
+
+// DeleteCategory is the resolver for the deleteCategory field.
+func (r *mutationResolver) DeleteCategory(ctx context.Context, id string) (bool, error) {
+	if r.Taxonomy == nil {
+		return false, errors.New("taxonomy_disabled")
+	}
+	if err := r.Taxonomy.DeleteCategory(ctx, id); err != nil {
+		if errors.Is(err, taxApp.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// CreateTag is the resolver for the createTag field.
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.CreateTag(ctx, input.Name, input.Slug)
+	if err != nil {
+		return nil, err
+	}
+	return domainTagToGQL(out), nil
+}
+
+// UpdateTag is the resolver for the updateTag field.
+func (r *mutationResolver) UpdateTag(ctx context.Context, input model.UpdateTagInput) (*model.Tag, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.UpdateTag(ctx, input.ID, valueOrEmpty(input.Name), valueOrEmpty(input.Slug))
+	if err != nil {
+		return nil, err
+	}
+	return domainTagToGQL(out), nil
+}
+
+// DeleteTag is the resolver for the deleteTag field.
+func (r *mutationResolver) DeleteTag(ctx context.Context, id string) (bool, error) {
+	if r.Taxonomy == nil {
+		return false, errors.New("taxonomy_disabled")
+	}
+	if err := r.Taxonomy.DeleteTag(ctx, id); err != nil {
+		if errors.Is(err, taxApp.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // Post is the resolver for the post field.

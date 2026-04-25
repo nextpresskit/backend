@@ -64,6 +64,28 @@ input RefreshInput {
   refreshToken: String!
 }
 
+input CreateCategoryInput {
+  name: String!
+  slug: String!
+}
+
+input UpdateCategoryInput {
+  id: ID!
+  name: String
+  slug: String
+}
+
+input CreateTagInput {
+  name: String!
+  slug: String!
+}
+
+input UpdateTagInput {
+  id: ID!
+  name: String
+  slug: String
+}
+
 type Query {
   post(slug: String!): Post
   posts(limit: Int, offset: Int): PostConnection!
@@ -77,4 +99,10 @@ type Mutation {
   register(input: RegisterInput!): AuthUser!
   login(input: LoginInput!): AuthTokens!
   refresh(input: RefreshInput!): AuthTokens!
+  createCategory(input: CreateCategoryInput!): Category!
+  updateCategory(input: UpdateCategoryInput!): Category!
+  deleteCategory(id: ID!): Boolean!
+  createTag(input: CreateTagInput!): Tag!
+  updateTag(input: UpdateTagInput!): Tag!
+  deleteTag(id: ID!): Boolean!
 }

@@ -113,7 +113,7 @@
 - [x] Playground when `APP_ENV` local/dev and flag on
 - [x] Public read parity slice: `categories`, `tags`, `searchPosts(q)` queries
 - [x] Auth mutation parity slice: `register`, `login`, `refresh`
-- [ ] **Parity** with REST: categories, tags, search, mutations, auth, admin types - as you define scope
+- [x] **Parity (defined scope)** with REST for public/auth slices: categories, tags, search, `register/login/refresh`, taxonomy mutations (`create/update/delete` category/tag); admin GraphQL types remain out-of-scope (REST-first)
 - [x] Document intended GraphQL vs REST split in [`README.md`](README.md) (docs index) or an ADR
 
 ---

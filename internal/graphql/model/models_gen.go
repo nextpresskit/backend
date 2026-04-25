@@ -25,6 +25,16 @@ type Category struct {
 	Slug string `json:"slug"`
 }
 
+type CreateCategoryInput struct {
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+type CreateTagInput struct {
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -72,4 +82,16 @@ type Tag struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
+}
+
+type UpdateCategoryInput struct {
+	ID   string  `json:"id"`
+	Name *string `json:"name,omitempty"`
+	Slug *string `json:"slug,omitempty"`
+}
+
+type UpdateTagInput struct {
+	ID   string  `json:"id"`
+	Name *string `json:"name,omitempty"`
+	Slug *string `json:"slug,omitempty"`
 }
