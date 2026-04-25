@@ -21,6 +21,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	g.POST("/register", h.register)
 	g.POST("/login", h.login)
 	g.POST("/refresh", h.refresh)
+	g.POST("/logout", h.logout)
 }
 
 type registerRequest struct {
@@ -96,4 +97,23 @@ func (h *Handler) refresh(c *gin.Context) {
 		"accessToken":  access,
 		"refreshToken": refresh,
 	})
+}
+
+type logoutRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+func (h *Handler) logout(c *gin.Context) {
+	var req logoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
+		return
+	}
+
+	if err := h.svc.Logout(c.Request.Context(), req.RefreshToken); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_refresh_token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Signed out."})
 }

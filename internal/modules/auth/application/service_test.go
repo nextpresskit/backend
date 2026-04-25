@@ -131,3 +131,20 @@ func TestRefresh_InvalidToken(t *testing.T) {
 		t.Fatalf("expected ErrInvalidLogin for invalid refresh, got %v", err)
 	}
 }
+
+func TestLogout_InvalidToken(t *testing.T) {
+	svc := NewService(&userRepoStub{}, tokenStub{parseRefreshErr: errors.New("bad token")}, hasherStub{})
+
+	err := svc.Logout(context.Background(), "bad")
+	if !errors.Is(err, ErrInvalidLogin) {
+		t.Fatalf("expected ErrInvalidLogin for invalid refresh on logout, got %v", err)
+	}
+}
+
+func TestLogout_Success(t *testing.T) {
+	svc := NewService(&userRepoStub{}, tokenStub{parseRefreshUser: "u1"}, hasherStub{})
+
+	if err := svc.Logout(context.Background(), "good"); err != nil {
+		t.Fatalf("unexpected logout error: %v", err)
+	}
+}

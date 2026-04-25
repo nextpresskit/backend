@@ -109,6 +109,14 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (access, ref
 	return access, refresh, nil
 }
 
+func (s *Service) Logout(ctx context.Context, refreshToken string) error {
+	_, err := s.tokens.ParseRefreshToken(refreshToken)
+	if err != nil {
+		return ErrInvalidLogin
+	}
+	return nil
+}
+
 func generateUserID() string {
 	return uuid.New().String()
 }
