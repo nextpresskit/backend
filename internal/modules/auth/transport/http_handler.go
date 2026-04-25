@@ -2,6 +2,7 @@ package transport
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -52,6 +53,7 @@ func (h *Handler) register(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"id":        u.ID,
+		"uuid":      u.UUID,
 		"firstName": u.FirstName,
 		"lastName":  u.LastName,
 		"email":     u.Email,
@@ -75,7 +77,7 @@ func (h *Handler) login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
 		return
 	}
-	relations, err := h.svc.Relations(c.Request.Context(), string(u.ID))
+	relations, err := h.svc.Relations(c.Request.Context(), fmt.Sprintf("%d", u.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
@@ -106,7 +108,7 @@ func (h *Handler) refresh(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_refresh_token"})
 		return
 	}
-	relations, err := h.svc.Relations(c.Request.Context(), string(u.ID))
+	relations, err := h.svc.Relations(c.Request.Context(), fmt.Sprintf("%d", u.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
@@ -162,7 +164,7 @@ func (h *Handler) me(c *gin.Context) {
 		return
 	}
 
-	relations, err := h.svc.Relations(c.Request.Context(), string(u.ID))
+	relations, err := h.svc.Relations(c.Request.Context(), fmt.Sprintf("%d", u.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
@@ -176,7 +178,8 @@ func userToJSON(u *userdomain.User, relations application.UserRelations) gin.H {
 		return nil
 	}
 	out := gin.H{
-		"id":        string(u.ID),
+		"id":        u.ID,
+		"uuid":      string(u.UUID),
 		"firstName": u.FirstName,
 		"lastName":  u.LastName,
 		"email":     u.Email,

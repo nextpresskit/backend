@@ -76,6 +76,7 @@ type Post struct {
 // UserSummary is a minimal user projection on posts.
 type UserSummary struct {
 	ID          string  `json:"id"`
+	UUID        string  `json:"uuid"`
 	DisplayName string  `json:"displayName"`
 	Email       *string `json:"email,omitempty"`
 	Role        *string `json:"role,omitempty"`

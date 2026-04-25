@@ -9,7 +9,8 @@ import (
 )
 
 type gormUser struct {
-	ID        string         `gorm:"type:uuid;primaryKey"`
+	PublicID  int64          `gorm:"column:public_id;autoIncrement;uniqueIndex;not null"`
+	UUID      string         `gorm:"column:id;type:uuid;primaryKey"`
 	FirstName string         `gorm:"not null"`
 	LastName  string         `gorm:"not null"`
 	Email     string         `gorm:"not null;uniqueIndex"`
@@ -35,7 +36,20 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 func (r *GormRepository) FindByID(id domain.UserID) (*domain.User, error) {
 	var u gormUser
 	if err := r.db.WithContext(context.Background()).
-		Where("id = ?", string(id)).
+		Where("public_id = ?", int64(id)).
+		First(&u).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return toDomain(&u), nil
+}
+
+func (r *GormRepository) FindByUUID(uuid string) (*domain.User, error) {
+	var u gormUser
+	if err := r.db.WithContext(context.Background()).
+		Where("id = ?", uuid).
 		First(&u).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -71,13 +85,13 @@ func (r *GormRepository) Update(user *domain.User) error {
 	u := fromDomain(user)
 	return r.db.WithContext(context.Background()).
 		Model(&gormUser{}).
-		Where("id = ?", u.ID).
+		Where("id = ?", u.UUID).
 		Updates(&u).Error
 }
 
 func (r *GormRepository) Delete(id domain.UserID) error {
 	return r.db.WithContext(context.Background()).
-		Where("id = ?", string(id)).
+		Where("public_id = ?", int64(id)).
 		Delete(&gormUser{}).Error
 }
 
@@ -88,7 +102,8 @@ func toDomain(u *gormUser) *domain.User {
 		deletedAt = &t
 	}
 	return &domain.User{
-		ID:        domain.UserID(u.ID),
+		ID:        u.PublicID,
+		UUID:      u.UUID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Email:     u.Email,
@@ -106,7 +121,8 @@ func fromDomain(u *domain.User) *gormUser {
 		deleted = gorm.DeletedAt{Time: *u.DeletedAt, Valid: true}
 	}
 	return &gormUser{
-		ID:        string(u.ID),
+		PublicID:  u.ID,
+		UUID:      u.UUID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Email:     u.Email,

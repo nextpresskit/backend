@@ -2,10 +2,11 @@ package domain
 
 import "time"
 
-type UserID string
+type UserID int64
 
 type User struct {
-	ID        UserID
+	ID        int64
+	UUID      string
 	FirstName string
 	LastName  string
 	Email     string

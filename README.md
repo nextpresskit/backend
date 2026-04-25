@@ -1,89 +1,89 @@
-# NextPress Backend
+# Next Press Kit
 
-Headless-style **CMS HTTP API** in Go: **REST** ([OpenAPI](docs/openapi.yaml)), optional **GraphQL**, **PostgreSQL**, **JWT** auth, **RBAC** on admin routes.
+Next Press Kit is a starter kit for building modern backend APIs using Go, Gin, and PostgreSQL.
 
-**Docs:** [`docs/README.md`](docs/README.md) (index) · **Checklist:** [`docs/TODO.md`](docs/TODO.md) · **Direction:** [`docs/ROADMAP.md`](docs/ROADMAP.md) · **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md)
+The goal of this project is to give developers a strong starting point they can clone and build on, with common product needs already in place: authentication handling, content creation flows, and an administration area.
 
-## Stack
+* Website: nextpresskit.com
+* Frontend repository: nextpresskit/web
 
-| | |
-|--|--|
-| Layout | Modular monolith - `internal/modules/*` |
-| HTTP | Gin |
-| Persistence | GORM + SQL migrations (`migrations/`, `cmd/migrate`) |
-| Plugins | Registry + post-save hooks - status: [roadmap](docs/ROADMAP.md), tasks: [TODO](docs/TODO.md#plugins) |
+## Project Concepts
 
-## Requirements
+* **Starter-first architecture**: designed for rapid project bootstrapping and customization.
+* **Auth-ready foundations**: includes backend auth integration patterns and services.
+* **Content-oriented workflows**: supports content creation and publishing APIs.
+* **Admin capabilities**: includes administration routes and structures to manage app data.
+* **Modern API stack**: Go + Gin + GORM for fast, consistent backend development.
 
-- Go ≥ 1.26 ([`go.mod`](go.mod))
-- PostgreSQL
+## Tech Stack
 
-## Quick start
+* Go
+* Gin
+* PostgreSQL
+* GORM
+* JWT
+* gqlgen
+* Prometheus
+
+## Getting Started
+
+Install dependencies and run the app locally:
 
 ```bash
-cp .env.example .env   # set DB_* and JWT_SECRET
-
+cp .env.example .env
 make deps
 make migrate-up
 make seed
 make run
 ```
 
-| | |
-|--|--|
-| API | `http://localhost:9090` (`APP_PORT`) |
-| Health | `GET /health` · `GET /ready` |
-| REST spec | [`docs/openapi.yaml`](docs/openapi.yaml) |
+The development server runs on `http://localhost:9090`.
 
-## Makefile
+## Scripts
 
 ```bash
-make help
-make build run test tidy deps
-make migrate-up migrate-down migrate-version
-make db-fresh          # destructive
+make run
+make build
+make test
+make test-coverage
+make migrate-up
+make migrate-down
+make migrate-version
 make seed
-make graphql           # after editing internal/graphql/schema.graphqls
+make graphql
+make security-check
+make db-fresh
 ```
 
-Configuration: [`.env.example`](.env.example). Optional Elasticsearch, GraphQL, Nginx, and systemd on your machine: [`docs/deployment/local.md`](docs/deployment/local.md).
+## Frontend Integration
 
-## API surface (summary)
+Next Press Kit backend is designed to work with the frontend web project:
 
-- **Auth:** `POST /auth/register`, `/login`, `/refresh`
-- **Public:** posts, pages (and search when Elasticsearch is enabled)
-- **GraphQL:** if enabled - `GRAPHQL_PATH` (default `<API_BASE_PATH>/graphql`, e.g. `/graphql` or `/v1/graphql`)
-- **Admin:** `/admin/*` - JWT + permissions
-- **Base path:** optional `API_BASE_PATH` prefix for all API routes
+* Frontend repo: <https://github.com/nextpresskit/web>
+* API responsibilities include authentication, content APIs, and admin-related backend operations.
+* This project can also be used separately with a different frontend or mock/local API consumers.
 
-Details: OpenAPI and source.
+## API Contract
 
-## GraphQL vs REST split
+This project includes an OpenAPI-first API contract and optional GraphQL support.
 
-NextPress keeps REST as the primary contract and uses GraphQL as an optional read-focused API.
+* OpenAPI spec lives in `docs/openapi.yaml`.
+* REST endpoints cover auth, public content, and admin operations.
+* GraphQL is optional and can be enabled via environment configuration.
+* API base path is configurable using `API_BASE_PATH`.
 
-- **REST is source-of-truth for full platform coverage:** auth, admin workflows, writes/mutations, and RBAC-controlled operations are defined in [`docs/openapi.yaml`](docs/openapi.yaml).
-- **GraphQL is optional and additive:** enabled via `GRAPHQL_ENABLED`, intended for client-friendly public content reads and selective aggregation.
-- **Current GraphQL scope:** public reads for posts/pages plus taxonomy and search queries (when Elasticsearch is enabled).
-- **Write/admin/auth behavior:** remain REST-first unless explicitly added to GraphQL with clear permission and validation rules.
-- **Backward compatibility rule:** REST paths are stable integration surface; GraphQL can evolve as an ergonomics layer without replacing REST parity guarantees.
+## Documentation
 
-## RBAC
+This project includes documentation for setup, architecture, and operations.
 
-[`make seed`](docs/SEEDING.md) runs all seeders: RBAC defaults, a seeded `superadmin`, and 100 deterministic records per content table for local/dev datasets.
+* Docs index: `docs/README.md`
+* API versioning: `docs/API_VERSIONING.md`
+* Seeding guide: `docs/SEEDING.md`
+* Local deployment: `docs/deployment/local.md`
+* Full deployment guide: `docs/DEPLOYMENT.md`
+* Roadmap: `docs/ROADMAP.md`
+* TODO checklist: `docs/TODO.md`
 
-## Repository layout
+## About
 
-```text
-cmd/          api, migrate, seed
-internal/     config, platform, graphql, server, modules
-migrations/   SQL
-pkg/          shared libraries
-deploy/       nginx, systemd templates
-docs/         guides, OpenAPI (see docs/README.md)
-scripts/      deploy, local run
-```
-
-## Deployment
-
-Servers and Git flow: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Local deep-dive: [`docs/deployment/local.md`](docs/deployment/local.md).
+Next Press Kit backend starter for Go APIs.

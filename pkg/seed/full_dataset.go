@@ -179,7 +179,7 @@ func seedPermissions(tx *gorm.DB) error {
 func seedUserRoles(tx *gorm.DB) error {
 	if err := tx.Exec(
 		`INSERT INTO user_roles (user_id, role_id)
-		 SELECT ?, id FROM roles WHERE name = ?
+		 SELECT (SELECT public_id FROM users WHERE id = ?), id FROM roles WHERE name = ?
 		 ON CONFLICT DO NOTHING`,
 		superadminUserID, superadminRoleName,
 	).Error; err != nil {
@@ -188,7 +188,7 @@ func seedUserRoles(tx *gorm.DB) error {
 
 	if err := tx.Exec(
 		`INSERT INTO user_roles (user_id, role_id)
-		 VALUES (?, ?)
+		 VALUES ((SELECT public_id FROM users WHERE id = ?), ?)
 		 ON CONFLICT DO NOTHING`,
 		superadminUserID, RoleAdminID,
 	).Error; err != nil {
@@ -198,7 +198,7 @@ func seedUserRoles(tx *gorm.DB) error {
 	for i := 2; i <= 99; i++ {
 		if err := tx.Exec(
 			`INSERT INTO user_roles (user_id, role_id)
-			 SELECT ?, id FROM roles WHERE name = ?
+			 SELECT (SELECT public_id FROM users WHERE id = ?), id FROM roles WHERE name = ?
 			 ON CONFLICT DO NOTHING`,
 			seedUUID(0x0100, i), fmt.Sprintf("role-%03d", i+1),
 		).Error; err != nil {
@@ -299,7 +299,7 @@ func seedMedia(tx *gorm.DB) error {
 			     storage_path = EXCLUDED.storage_path,
 			     public_url = EXCLUDED.public_url`,
 			seedUUID(0x0600, i),
-			seedUUID(0x0100, i),
+			userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
 			fmt.Sprintf("image-%03d.jpg", i),
 			fmt.Sprintf("seed-image-%03d.jpg", i),
 			"image/jpeg",
@@ -370,7 +370,7 @@ func seedPosts(tx *gorm.DB) error {
 			     deleted_at = NULL,
 			     updated_at = NOW()`,
 			postID,
-			seedUUID(0x0100, i),
+			userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
 			fmt.Sprintf("Seed Post %03d", i),
 			fmt.Sprintf("seed-post-%03d", i),
 			fmt.Sprintf("Seeded content body for post %03d.", i),
@@ -386,8 +386,8 @@ func seedPosts(tx *gorm.DB) error {
 			"UTC",
 			now.Add(time.Duration(i)*time.Hour),
 			now,
-			seedUUID(0x0100, ((i)%seedRows)+1),
-			seedUUID(0x0100, ((i+1)%seedRows)+1),
+			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i)%seedRows)+1)),
+			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i+1)%seedRows)+1)),
 			"draft",
 			1,
 			fmt.Sprintf(`{"seed_index": %d}`, i),
@@ -432,7 +432,7 @@ func seedPages(tx *gorm.DB) error {
 			     deleted_at = NULL,
 			     updated_at = NOW()`,
 			seedUUID(0x0800, i),
-			seedUUID(0x0100, i),
+			userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
 			fmt.Sprintf("Seed Page %03d", i),
 			fmt.Sprintf("seed-page-%03d", i),
 			fmt.Sprintf("Seeded content body for page %03d.", i),
@@ -614,7 +614,7 @@ func seedPostCoauthors(tx *gorm.DB) error {
 			 VALUES (?, ?, ?)
 			 ON CONFLICT DO NOTHING`,
 			seedUUID(0x0700, i),
-			seedUUID(0x0100, ((i)%seedRows)+1),
+			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i)%seedRows)+1)),
 			1,
 		).Error; err != nil {
 			return fmt.Errorf("post_coauthors row %d: %w", i, err)
@@ -660,7 +660,7 @@ func seedPostChangelog(tx *gorm.DB) error {
 			seedUUID(0x0e00, i),
 			seedUUID(0x0700, i),
 			time.Now().UTC().Add(-time.Duration(i)*time.Hour),
-			seedUUID(0x0100, ((i+2)%seedRows)+1),
+			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i+2)%seedRows)+1)),
 			fmt.Sprintf("Seed changelog entry %03d", i),
 		).Error; err != nil {
 			return fmt.Errorf("post_changelog row %d: %w", i, err)
@@ -737,4 +737,10 @@ func envOrDefault(key, fallback string) string {
 
 func seedUUID(namespace, index int) string {
 	return fmt.Sprintf("00000000-0000-0000-%04x-%012x", namespace, index)
+}
+
+func userPublicIDFromUUID(tx *gorm.DB, userUUID string) int64 {
+	var id int64
+	_ = tx.Raw(`SELECT public_id FROM users WHERE id = ?`, userUUID).Scan(&id).Error
+	return id
 }

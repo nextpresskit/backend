@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	pageDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/domain"
@@ -10,7 +11,7 @@ import (
 
 type gormPage struct {
 	ID          string         `gorm:"column:id;type:uuid;primaryKey"`
-	AuthorID    string         `gorm:"column:author_id;type:uuid;not null;index"`
+	AuthorID    int64          `gorm:"column:author_id;not null;index"`
 	Title       string         `gorm:"column:title;not null"`
 	Slug        string         `gorm:"column:slug;not null;uniqueIndex"`
 	Content     string         `gorm:"column:content;not null"`
@@ -94,7 +95,9 @@ func (r *GormRepository) ListFiltered(ctx context.Context, includeDeleted bool, 
 		dbq = dbq.Where("status = ?", status)
 	}
 	if authorID != "" {
-		dbq = dbq.Where("author_id = ?", authorID)
+		if aid, err := strconv.ParseInt(authorID, 10, 64); err == nil {
+			dbq = dbq.Where("author_id = ?", aid)
+		}
 	}
 	if q != "" {
 		like := "%" + q + "%"
@@ -136,7 +139,7 @@ func toDomain(m *gormPage) *pageDomain.Page {
 	}
 	return &pageDomain.Page{
 		ID:          pageDomain.PageID(m.ID),
-		AuthorID:    m.AuthorID,
+		AuthorID:    strconv.FormatInt(m.AuthorID, 10),
 		Title:       m.Title,
 		Slug:        m.Slug,
 		Content:     m.Content,
@@ -155,7 +158,7 @@ func fromDomain(p *pageDomain.Page) *gormPage {
 	}
 	return &gormPage{
 		ID:          string(p.ID),
-		AuthorID:    p.AuthorID,
+		AuthorID:    parseInt64OrZero(p.AuthorID),
 		Title:       p.Title,
 		Slug:        p.Slug,
 		Content:     p.Content,
@@ -165,5 +168,13 @@ func fromDomain(p *pageDomain.Page) *gormPage {
 		UpdatedAt:   p.UpdatedAt,
 		DeletedAt:   deleted,
 	}
+}
+
+func parseInt64OrZero(v string) int64 {
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 

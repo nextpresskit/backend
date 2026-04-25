@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +21,8 @@ import (
 )
 
 type gormUserSummary struct {
-	ID        string `gorm:"column:id"`
+	ID        int64  `gorm:"column:public_id"`
+	UUID      string `gorm:"column:uuid"`
 	FirstName string `gorm:"column:first_name"`
 	LastName  string `gorm:"column:last_name"`
 	Email     string `gorm:"column:email"`
@@ -29,7 +31,7 @@ type gormUserSummary struct {
 type gormPost struct {
 	ID                 string          `gorm:"column:id;type:uuid;primaryKey"`
 	UUID               *string         `gorm:"column:uuid;type:uuid;uniqueIndex"`
-	AuthorID           string          `gorm:"column:author_id;type:uuid;not null;index"`
+	AuthorID           int64           `gorm:"column:author_id;not null;index"`
 	Title              string          `gorm:"column:title;not null"`
 	Slug               string          `gorm:"column:slug;not null;uniqueIndex"`
 	Subtitle           string          `gorm:"column:subtitle"`
@@ -43,8 +45,8 @@ type gormPost struct {
 	Status             string          `gorm:"column:status;not null"`
 	WorkflowStage      string          `gorm:"column:workflow_stage;not null"`
 	Revision           int             `gorm:"column:revision;not null"`
-	ReviewerUserID     *string         `gorm:"column:reviewer_user_id;type:uuid"`
-	LastEditedByUserID *string         `gorm:"column:last_edited_by_user_id;type:uuid"`
+	ReviewerUserID     *int64          `gorm:"column:reviewer_user_id"`
+	LastEditedByUserID *int64          `gorm:"column:last_edited_by_user_id"`
 	ScheduledPublishAt *time.Time      `gorm:"column:scheduled_publish_at"`
 	PublishedAt        *time.Time      `gorm:"column:published_at"`
 	FirstIndexedAt     *time.Time      `gorm:"column:first_indexed_at"`
@@ -299,7 +301,7 @@ func toDomain(m *gormPost) *model.Post {
 	return &model.Post{
 		ID:                 ident.PostID(m.ID),
 		UUID:               m.UUID,
-		AuthorID:           m.AuthorID,
+		AuthorID:           strconv.FormatInt(m.AuthorID, 10),
 		Title:              m.Title,
 		Slug:               m.Slug,
 		Subtitle:           m.Subtitle,
@@ -313,8 +315,8 @@ func toDomain(m *gormPost) *model.Post {
 		Status:             ident.Status(m.Status),
 		WorkflowStage:      m.WorkflowStage,
 		Revision:           m.Revision,
-		ReviewerUserID:     m.ReviewerUserID,
-		LastEditedByUserID: m.LastEditedByUserID,
+		ReviewerUserID:     int64PtrToStringPtr(m.ReviewerUserID),
+		LastEditedByUserID: int64PtrToStringPtr(m.LastEditedByUserID),
 		ScheduledPublishAt: m.ScheduledPublishAt,
 		PublishedAt:        m.PublishedAt,
 		FirstIndexedAt:     m.FirstIndexedAt,
@@ -344,7 +346,7 @@ func fromDomain(p *model.Post) *gormPost {
 	return &gormPost{
 		ID:                 string(p.ID),
 		UUID:               p.UUID,
-		AuthorID:           p.AuthorID,
+		AuthorID:           parseIDString(p.AuthorID),
 		Title:              p.Title,
 		Slug:               p.Slug,
 		Subtitle:           p.Subtitle,
@@ -358,8 +360,8 @@ func fromDomain(p *model.Post) *gormPost {
 		Status:             string(p.Status),
 		WorkflowStage:      p.WorkflowStage,
 		Revision:           p.Revision,
-		ReviewerUserID:     p.ReviewerUserID,
-		LastEditedByUserID: p.LastEditedByUserID,
+		ReviewerUserID:     parseOptionalIDString(p.ReviewerUserID),
+		LastEditedByUserID: parseOptionalIDString(p.LastEditedByUserID),
 		ScheduledPublishAt: p.ScheduledPublishAt,
 		PublishedAt:        p.PublishedAt,
 		FirstIndexedAt:     p.FirstIndexedAt,
@@ -444,25 +446,25 @@ func (r *GormRepository) findByIDWithExtras(ctx context.Context, db *gorm.DB, id
 
 	// Build editors list from reviewer + lastEditedBy.
 	editorIDs := make([]string, 0, 2)
-	if row.ReviewerUserID != nil && *row.ReviewerUserID != "" {
-		editorIDs = append(editorIDs, *row.ReviewerUserID)
+	if row.ReviewerUserID != nil {
+		editorIDs = append(editorIDs, strconv.FormatInt(*row.ReviewerUserID, 10))
 	}
-	if row.LastEditedByUserID != nil && *row.LastEditedByUserID != "" {
+	if row.LastEditedByUserID != nil {
 		seen := false
 		for _, id := range editorIDs {
-			if id == *row.LastEditedByUserID {
+			if id == strconv.FormatInt(*row.LastEditedByUserID, 10) {
 				seen = true
 				break
 			}
 		}
 		if !seen {
-			editorIDs = append(editorIDs, *row.LastEditedByUserID)
+			editorIDs = append(editorIDs, strconv.FormatInt(*row.LastEditedByUserID, 10))
 		}
 	}
 	p.EditorUserIDs = editorIDs
 	p.Editors = make([]model.UserSummary, 0, len(editorIDs))
 	for _, eid := range editorIDs {
-		if u, _ := loadUserSummary(ctx, db, eid); u != nil {
+		if u, _ := loadUserSummary(ctx, db, parseIDString(eid)); u != nil {
 			p.Editors = append(p.Editors, *u)
 		}
 	}
@@ -492,7 +494,7 @@ func (r *GormRepository) findByIDWithExtras(ctx context.Context, db *gorm.DB, id
 
 func loadPostCoauthors(ctx context.Context, db *gorm.DB, postID string) ([]model.UserSummary, error) {
 	var rows []struct {
-		UserID    string `gorm:"column:user_id"`
+		UserID    int64  `gorm:"column:user_id"`
 		SortOrder int    `gorm:"column:sort_order"`
 	}
 	if err := db.WithContext(ctx).
@@ -512,16 +514,15 @@ func loadPostCoauthors(ctx context.Context, db *gorm.DB, postID string) ([]model
 	return out, nil
 }
 
-func loadUserSummary(ctx context.Context, db *gorm.DB, userID string) (*model.UserSummary, error) {
-	userID = strings.TrimSpace(userID)
-	if userID == "" {
+func loadUserSummary(ctx context.Context, db *gorm.DB, userID int64) (*model.UserSummary, error) {
+	if userID <= 0 {
 		return nil, nil
 	}
 	var u gormUserSummary
 	if err := db.WithContext(ctx).
 		Table("users").
-		Select("id, first_name, last_name, email").
-		Where("id = ?", userID).
+		Select("public_id, id AS uuid, first_name, last_name, email").
+		Where("public_id = ?", userID).
 		First(&u).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -531,7 +532,8 @@ func loadUserSummary(ctx context.Context, db *gorm.DB, userID string) (*model.Us
 	email := u.Email
 	display := strings.TrimSpace(strings.TrimSpace(u.FirstName) + " " + strings.TrimSpace(u.LastName))
 	return &model.UserSummary{
-		ID:          u.ID,
+		ID:          strconv.FormatInt(u.ID, 10),
+		UUID:        u.UUID,
 		DisplayName: display,
 		Email:       &email,
 	}, nil
@@ -643,7 +645,7 @@ func loadPostSyndication(ctx context.Context, db *gorm.DB, postID string) ([]mod
 type gormPostChangelogRow struct {
 	ID     string    `gorm:"column:id"`
 	At     time.Time `gorm:"column:at"`
-	UserID *string   `gorm:"column:user_id"`
+	UserID *int64    `gorm:"column:user_id"`
 	Note   string    `gorm:"column:note"`
 }
 
@@ -1306,6 +1308,33 @@ func (r *GormRepository) FindTranslationGroup(ctx context.Context, id string) (b
 
 func (r *GormRepository) DeleteTranslationGroup(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Where("id = ?", strings.TrimSpace(id)).Delete(&gormTranslationGroupRow{}).Error
+}
+
+func parseIDString(raw string) int64 {
+	v, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+func parseOptionalIDString(raw *string) *int64 {
+	if raw == nil {
+		return nil
+	}
+	v := parseIDString(*raw)
+	if v == 0 {
+		return nil
+	}
+	return &v
+}
+
+func int64PtrToStringPtr(v *int64) *string {
+	if v == nil || *v == 0 {
+		return nil
+	}
+	s := strconv.FormatInt(*v, 10)
+	return &s
 }
 
 var _ ports.Repository = (*GormRepository)(nil)

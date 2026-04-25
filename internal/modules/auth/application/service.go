@@ -3,6 +3,8 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 
 	userDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
@@ -69,7 +71,7 @@ func (s *Service) Register(ctx context.Context, firstName, lastName, email, pass
 	}
 
 	u := &userDomain.User{
-		ID:        userDomain.UserID(generateUserID()),
+		UUID:      generateUserID(),
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
@@ -97,11 +99,11 @@ func (s *Service) Login(ctx context.Context, email, password string) (*userDomai
 		return nil, "", "", ErrInvalidLogin
 	}
 
-	access, err := s.tokens.GenerateAccessToken(string(u.ID))
+	access, err := s.tokens.GenerateAccessToken(fmt.Sprintf("%d", u.ID))
 	if err != nil {
 		return nil, "", "", err
 	}
-	refresh, err := s.tokens.GenerateRefreshToken(string(u.ID))
+	refresh, err := s.tokens.GenerateRefreshToken(fmt.Sprintf("%d", u.ID))
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -114,7 +116,11 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*userDomain
 		return nil, "", "", ErrInvalidLogin
 	}
 
-	u, err := s.users.FindByID(userDomain.UserID(userID))
+	id, err := parseUserID(userID)
+	if err != nil {
+		return nil, "", "", ErrInvalidLogin
+	}
+	u, err := s.users.FindByID(id)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -134,7 +140,11 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*userDomain
 }
 
 func (s *Service) Me(ctx context.Context, userID string) (*userDomain.User, error) {
-	u, err := s.users.FindByID(userDomain.UserID(userID))
+	id, err := parseUserID(userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	u, err := s.users.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -164,6 +174,14 @@ func (s *Service) Relations(ctx context.Context, userID string) (UserRelations, 
 		RoleNames:       roleNames,
 		PermissionCodes: permissionCodes,
 	}, nil
+}
+
+func parseUserID(raw string) (userDomain.UserID, error) {
+	v, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	if err != nil || v <= 0 {
+		return 0, errors.New("invalid user id")
+	}
+	return userDomain.UserID(v), nil
 }
 
 func (s *Service) Logout(ctx context.Context, refreshToken string) error {

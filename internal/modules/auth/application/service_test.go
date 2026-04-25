@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	userDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
@@ -11,17 +12,31 @@ import (
 type userRepoStub struct {
 	byEmail map[string]*userDomain.User
 	byID    map[string]*userDomain.User
+	byUUID  map[string]*userDomain.User
 	created *userDomain.User
 }
 
 func (s *userRepoStub) FindByID(id userDomain.UserID) (*userDomain.User, error) {
 	if s.byID != nil {
-		if u, ok := s.byID[string(id)]; ok {
+		if u, ok := s.byID[fmt.Sprintf("%d", id)]; ok {
 			return u, nil
 		}
 	}
 	for _, u := range s.byEmail {
-		if u != nil && u.ID == id {
+		if u != nil && u.ID == int64(id) {
+			return u, nil
+		}
+	}
+	return nil, nil
+}
+func (s *userRepoStub) FindByUUID(uuid string) (*userDomain.User, error) {
+	if s.byUUID != nil {
+		if u, ok := s.byUUID[uuid]; ok {
+			return u, nil
+		}
+	}
+	for _, u := range s.byEmail {
+		if u != nil && u.UUID == uuid {
 			return u, nil
 		}
 	}
@@ -98,7 +113,7 @@ func TestRegister_CreatesUser(t *testing.T) {
 func TestRegister_EmailTaken(t *testing.T) {
 	repo := &userRepoStub{
 		byEmail: map[string]*userDomain.User{
-			"taken@example.com": {ID: "u1", Email: "taken@example.com"},
+			"taken@example.com": {UUID: "u1", Email: "taken@example.com"},
 		},
 	}
 	svc := NewService(repo, tokenStub{}, hasherStub{})
@@ -112,7 +127,7 @@ func TestRegister_EmailTaken(t *testing.T) {
 func TestLogin_Success(t *testing.T) {
 	repo := &userRepoStub{
 		byEmail: map[string]*userDomain.User{
-			"user@example.com": {ID: "u1", Email: "user@example.com", Password: "hash"},
+			"user@example.com": {UUID: "u1", Email: "user@example.com", Password: "hash"},
 		},
 	}
 	svc := NewService(repo, tokenStub{}, hasherStub{})
@@ -121,7 +136,7 @@ func TestLogin_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected login error: %v", err)
 	}
-	if u == nil || string(u.ID) != "u1" {
+	if u == nil || u.UUID != "u1" {
 		t.Fatalf("expected user u1, got %+v", u)
 	}
 	if access == "" || refresh == "" {
@@ -151,10 +166,13 @@ func TestRefresh_InvalidToken(t *testing.T) {
 func TestRefresh_Success(t *testing.T) {
 	repo := &userRepoStub{
 		byID: map[string]*userDomain.User{
-			"u1": {ID: "u1", Email: "user@example.com", Password: "hash"},
+			"1": {ID: 1, UUID: "u1", Email: "user@example.com", Password: "hash"},
+		},
+		byUUID: map[string]*userDomain.User{
+			"u1": {ID: 1, UUID: "u1", Email: "user@example.com", Password: "hash"},
 		},
 	}
-	svc := NewService(repo, tokenStub{parseRefreshUser: "u1"}, hasherStub{})
+	svc := NewService(repo, tokenStub{parseRefreshUser: "1"}, hasherStub{})
 
 	u, access, refresh, err := svc.Refresh(context.Background(), "any")
 	if err != nil {
@@ -168,12 +186,15 @@ func TestRefresh_Success(t *testing.T) {
 func TestMe_Success(t *testing.T) {
 	repo := &userRepoStub{
 		byID: map[string]*userDomain.User{
-			"u1": {ID: "u1", Email: "a@b.com", FirstName: "A", LastName: "B"},
+			"1": {ID: 1, UUID: "u1", Email: "a@b.com", FirstName: "A", LastName: "B"},
+		},
+		byUUID: map[string]*userDomain.User{
+			"u1": {ID: 1, UUID: "u1", Email: "a@b.com", FirstName: "A", LastName: "B"},
 		},
 	}
 	svc := NewService(repo, tokenStub{}, hasherStub{})
 
-	u, err := svc.Me(context.Background(), "u1")
+	u, err := svc.Me(context.Background(), "1")
 	if err != nil {
 		t.Fatalf("unexpected me error: %v", err)
 	}

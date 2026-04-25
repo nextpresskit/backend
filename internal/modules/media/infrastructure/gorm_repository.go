@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	mediaDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/domain"
@@ -10,7 +11,7 @@ import (
 
 type gormMedia struct {
 	ID           string    `gorm:"column:id;type:uuid;primaryKey"`
-	UploaderID   string    `gorm:"column:uploader_id;type:uuid;not null;index"`
+	UploaderID   int64     `gorm:"column:uploader_id;not null;index"`
 	OriginalName string    `gorm:"column:original_name;not null"`
 	StorageName  string    `gorm:"column:storage_name;not null;uniqueIndex"`
 	MimeType     string    `gorm:"column:mime_type;not null"`
@@ -66,7 +67,7 @@ func (r *GormRepository) List(ctx context.Context, limit, offset int) ([]mediaDo
 func toDomain(m *gormMedia) *mediaDomain.Media {
 	return &mediaDomain.Media{
 		ID:           mediaDomain.MediaID(m.ID),
-		UploaderID:   m.UploaderID,
+		UploaderID:   strconv.FormatInt(m.UploaderID, 10),
 		OriginalName: m.OriginalName,
 		StorageName:  m.StorageName,
 		MimeType:     m.MimeType,
@@ -80,7 +81,7 @@ func toDomain(m *gormMedia) *mediaDomain.Media {
 func fromDomain(m *mediaDomain.Media) *gormMedia {
 	return &gormMedia{
 		ID:           string(m.ID),
-		UploaderID:   m.UploaderID,
+		UploaderID:   parseInt64OrZero(m.UploaderID),
 		OriginalName: m.OriginalName,
 		StorageName:  m.StorageName,
 		MimeType:     m.MimeType,
@@ -89,5 +90,13 @@ func fromDomain(m *mediaDomain.Media) *gormMedia {
 		PublicURL:    m.PublicURL,
 		CreatedAt:    m.CreatedAt,
 	}
+}
+
+func parseInt64OrZero(v string) int64 {
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 

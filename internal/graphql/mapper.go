@@ -79,7 +79,7 @@ func domainAuthUserToGQL(u *userdomain.User) *model.AuthUser {
 		return nil
 	}
 	out := &model.AuthUser{
-		ID:        string(u.ID),
+		ID:        string(u.UUID),
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Email:     u.Email,
