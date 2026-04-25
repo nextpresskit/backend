@@ -4,8 +4,8 @@ Next Press Kit is a starter kit for building modern backend APIs using Go, Gin, 
 
 The goal of this project is to give developers a strong starting point they can clone and build on, with common product needs already in place: authentication handling, content creation flows, and an administration area.
 
-* Website: nextpresskit.com
-* Frontend repository: nextpresskit/web
+* Website: [nextpresskit.com](https://nextpresskit.com)
+* Frontend repository: [nextpresskit/web](https://github.com/nextpresskit/web)
 
 ## Project Concepts
 
@@ -59,7 +59,8 @@ make db-fresh
 
 Next Press Kit backend is designed to work with the frontend web project:
 
-* Frontend repo: <https://github.com/nextpresskit/web>
+* Frontend repo: [nextpresskit/web](https://github.com/nextpresskit/web)
+* Backend repo: [nextpresskit/backend](https://github.com/Petar-V-Nikolov/nextpress-backend)
 * API responsibilities include authentication, content APIs, and admin-related backend operations.
 * This project can also be used separately with a different frontend or mock/local API consumers.
 
@@ -67,7 +68,7 @@ Next Press Kit backend is designed to work with the frontend web project:
 
 This project includes an OpenAPI-first API contract and optional GraphQL support.
 
-* OpenAPI spec lives in `docs/openapi.yaml`.
+* OpenAPI spec lives in [docs/openapi.yaml](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/openapi.yaml).
 * REST endpoints cover auth, public content, and admin operations.
 * GraphQL is optional and can be enabled via environment configuration.
 * API base path is configurable using `API_BASE_PATH`.
@@ -76,13 +77,13 @@ This project includes an OpenAPI-first API contract and optional GraphQL support
 
 This project includes documentation for setup, architecture, and operations.
 
-* Docs index: `docs/README.md`
-* API versioning: `docs/API_VERSIONING.md`
-* Seeding guide: `docs/SEEDING.md`
-* Local deployment: `docs/deployment/local.md`
-* Full deployment guide: `docs/DEPLOYMENT.md`
-* Roadmap: `docs/ROADMAP.md`
-* TODO checklist: `docs/TODO.md`
+* Docs index: [docs/README.md](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/README.md)
+* API versioning: [docs/API_VERSIONING.md](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/API_VERSIONING.md)
+* Seeding guide: [docs/SEEDING.md](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/SEEDING.md)
+* Local deployment: [docs/deployment/local.md](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/deployment/local.md)
+* Full deployment guide: [docs/DEPLOYMENT.md](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/DEPLOYMENT.md)
+* Roadmap: [docs/ROADMAP.md](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/ROADMAP.md)
+* TODO checklist: [docs/TODO.md](https://github.com/Petar-V-Nikolov/nextpress-backend/blob/main/docs/TODO.md)
 
 ## About
 
