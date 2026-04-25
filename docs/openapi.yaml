@@ -27,11 +27,11 @@ components:
     tokenPair:
       type: object
       properties:
-        access_token:
+        accessToken:
           type: string
-        refresh_token:
+        refreshToken:
           type: string
-      required: [access_token, refresh_token]
+      required: [accessToken, refreshToken]
 
     post:
       type: object
@@ -144,15 +144,15 @@ components:
       type: object
       properties:
         id: { type: string }
-        author_id: { type: string }
+        authorId: { type: string }
         title: { type: string }
         slug: { type: string }
         content: { type: string }
         status: { type: string, enum: [draft, published, archived] }
-        published_at: { type: string, nullable: true }
-        created_at: { type: string }
-        updated_at: { type: string }
-      required: [id, author_id, title, slug, status, created_at, updated_at]
+        publishedAt: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, authorId, title, slug, status, createdAt, updatedAt]
 
     menu:
       type: object
@@ -166,12 +166,12 @@ components:
       type: object
       properties:
         id: { nullable: true }
-        parent_id: { nullable: true }
+        parentId: { nullable: true }
         label: { type: string }
-        item_type: { nullable: true }
-        ref_id: { nullable: true }
+        itemType: { nullable: true }
+        refId: { nullable: true }
         url: { nullable: true }
-        sort_order: { type: integer }
+        sortOrder: { type: integer }
         children:
           type: array
           items:
@@ -189,13 +189,13 @@ components:
       type: object
       properties:
         id: { type: string }
-        uploader_id: { type: string }
-        original_name: { type: string }
-        mime_type: { type: string }
-        size_bytes: { type: integer }
-        public_url: { type: string }
-        created_at: { type: string }
-      required: [id, uploader_id, original_name, mime_type, size_bytes, public_url, created_at]
+        uploaderId: { type: string }
+        originalName: { type: string }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        publicUrl: { type: string }
+        createdAt: { type: string }
+      required: [id, uploaderId, originalName, mimeType, sizeBytes, publicUrl, createdAt]
 
     plugin:
       type: object
@@ -206,9 +206,9 @@ components:
         enabled: { type: boolean }
         version: { type: string }
         config: { type: object, additionalProperties: true }
-        created_at: { type: string }
-        updated_at: { type: string }
-      required: [id, name, slug, enabled, version, config, created_at, updated_at]
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, name, slug, enabled, version, config, createdAt, updatedAt]
 
 paths:
   /health:
@@ -272,10 +272,10 @@ paths:
                 type: object
                 properties:
                   id: { type: string }
-                  first_name: { type: string }
-                  last_name: { type: string }
+                  firstName: { type: string }
+                  lastName: { type: string }
                   email: { type: string }
-                required: [id, first_name, last_name, email]
+                required: [id, firstName, lastName, email]
         "400":
           description: invalid payload
           content:

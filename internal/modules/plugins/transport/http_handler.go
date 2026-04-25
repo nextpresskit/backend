@@ -80,8 +80,8 @@ func (h *Handler) register(c *gin.Context) {
 }
 
 type updatePluginRequest struct {
-	Enabled *bool          `json:"enabled"`
-	Version *string        `json:"version"`
+	Enabled *bool           `json:"enabled"`
+	Version *string         `json:"version"`
 	Config  *map[string]any `json:"config"`
 }
 
@@ -112,14 +112,13 @@ func (h *Handler) update(c *gin.Context) {
 
 func pluginToJSON(p *pluginsDomain.Plugin) gin.H {
 	return gin.H{
-		"id":      p.ID,
-		"name":    p.Name,
-		"slug":    p.Slug,
-		"enabled": p.Enabled,
-		"version": p.Version,
-		"config":  p.Config,
-		"created_at": p.CreatedAt,
-		"updated_at": p.UpdatedAt,
+		"id":        p.ID,
+		"name":      p.Name,
+		"slug":      p.Slug,
+		"enabled":   p.Enabled,
+		"version":   p.Version,
+		"config":    p.Config,
+		"createdAt": p.CreatedAt,
+		"updatedAt": p.UpdatedAt,
 	}
 }
-

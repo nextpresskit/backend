@@ -167,15 +167,14 @@ func pageToJSON(p *pageDomain.Page) gin.H {
 	}
 
 	return gin.H{
-		"id":           p.ID,
-		"author_id":    p.AuthorID,
-		"title":        p.Title,
-		"slug":         p.Slug,
-		"content":      p.Content,
-		"status":       p.Status,
-		"published_at": publishedAt,
-		"created_at":   p.CreatedAt,
-		"updated_at":   p.UpdatedAt,
+		"id":          p.ID,
+		"authorId":    p.AuthorID,
+		"title":       p.Title,
+		"slug":        p.Slug,
+		"content":     p.Content,
+		"status":      p.Status,
+		"publishedAt": publishedAt,
+		"createdAt":   p.CreatedAt,
+		"updatedAt":   p.UpdatedAt,
 	}
 }
-

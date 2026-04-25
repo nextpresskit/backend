@@ -164,13 +164,13 @@ func (h *Handler) publicGetBySlug(c *gin.Context) {
 }
 
 type menuItemNode struct {
-	ID        any           `json:"id"`
-	ParentID  any           `json:"parent_id"`
-	Label     string        `json:"label"`
-	ItemType  any           `json:"item_type"`
-	RefID     any           `json:"ref_id"`
-	URL       any           `json:"url"`
-	SortOrder int           `json:"sort_order"`
+	ID        any            `json:"id"`
+	ParentID  any            `json:"parentId"`
+	Label     string         `json:"label"`
+	ItemType  any            `json:"itemType"`
+	RefID     any            `json:"refId"`
+	URL       any            `json:"url"`
+	SortOrder int            `json:"sortOrder"`
 	Children  []menuItemNode `json:"children"`
 }
 
@@ -300,14 +300,13 @@ func itemToJSON(i *menuDomain.MenuItem) gin.H {
 		url = *i.URL
 	}
 	return gin.H{
-		"id":         i.ID,
-		"menu_id":    i.MenuID,
-		"parent_id":  parentID,
-		"label":      i.Label,
-		"item_type":  i.ItemType,
-		"ref_id":     refID,
-		"url":        url,
-		"sort_order": i.SortOrder,
+		"id":        i.ID,
+		"menuId":    i.MenuID,
+		"parentId":  parentID,
+		"label":     i.Label,
+		"itemType":  i.ItemType,
+		"refId":     refID,
+		"url":       url,
+		"sortOrder": i.SortOrder,
 	}
 }
-

@@ -44,10 +44,10 @@ func (h *Handler) register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"id":         u.ID,
-		"first_name": u.FirstName,
-		"last_name":  u.LastName,
-		"email":      u.Email,
+		"id":        u.ID,
+		"firstName": u.FirstName,
+		"lastName":  u.LastName,
+		"email":     u.Email,
 	})
 }
 
@@ -70,8 +70,8 @@ func (h *Handler) login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  access,
-		"refresh_token": refresh,
+		"accessToken":  access,
+		"refreshToken": refresh,
 	})
 }
 
@@ -93,7 +93,7 @@ func (h *Handler) refresh(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  access,
-		"refresh_token": refresh,
+		"accessToken":  access,
+		"refreshToken": refresh,
 	})
 }

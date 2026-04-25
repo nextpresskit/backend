@@ -105,10 +105,10 @@ func (r *FixedWindowRateLimiter) Middleware(scope string) gin.HandlerFunc {
 			}
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":                  "rate_limited",
-				"retry_after_seconds":    retryAfterSeconds,
-				"rate_limit_scope":       scope,
-				"rate_limit_window_seconds": int(r.window.Seconds()),
-				"rate_limit_max":         r.maxRequests,
+				"retryAfterSeconds":      retryAfterSeconds,
+				"rateLimitScope":         scope,
+				"rateLimitWindowSeconds": int(r.window.Seconds()),
+				"rateLimitMax":           r.maxRequests,
 			})
 			c.Abort()
 			return
@@ -142,11 +142,11 @@ func (r *SharedFixedWindowRateLimiter) Middleware(scope string) gin.HandlerFunc 
 				c.Writer.Header().Set("Retry-After", strconv.Itoa(retryAfterSeconds))
 			}
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":                     "rate_limited",
-				"retry_after_seconds":       retryAfterSeconds,
-				"rate_limit_scope":          scope,
-				"rate_limit_window_seconds": int(r.window.Seconds()),
-				"rate_limit_max":            r.maxRequests,
+				"error":                  "rate_limited",
+				"retryAfterSeconds":      retryAfterSeconds,
+				"rateLimitScope":         scope,
+				"rateLimitWindowSeconds": int(r.window.Seconds()),
+				"rateLimitMax":           r.maxRequests,
 			})
 			c.Abort()
 			return
@@ -179,4 +179,3 @@ func firstHost(x string) string {
 	}
 	return strings.TrimSpace(x)
 }
-

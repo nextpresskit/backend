@@ -82,7 +82,7 @@ func TestAuthRequired_ValidTokenSetsUserID(t *testing.T) {
 			return
 		}
 		userID, _ := v.(string)
-		c.JSON(http.StatusOK, gin.H{"user_id": userID})
+		c.JSON(http.StatusOK, gin.H{"userId": userID})
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/private", nil)
@@ -94,4 +94,3 @@ func TestAuthRequired_ValidTokenSetsUserID(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
 }
-
