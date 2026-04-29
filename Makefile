@@ -1,4 +1,4 @@
-# NextPress Backend - developer tasks
+# NextPressKit backend - developer tasks
 #
 # Requires: Go (see go.mod), PostgreSQL for migrate/seed/run.
 # Config: copy .env.example to .env (DB_*, JWT_*, etc.).
@@ -18,7 +18,11 @@ MIGRATE_CMD ?= up
 	test test-coverage test-integration tidy deps graphql \
 	seed seed-build \
 	migrate-up migrate-down migrate-steps migrate-drop migrate-version db-fresh \
-	security-check
+	security-check deploy
+
+## deploy: Interactive deploy wizard (Nginx, TLS, systemd snippets, optional git/build/migrate); Windows: scripts/deploy.ps1
+deploy:
+	@bash scripts/deploy
 
 ## help: List targets and short descriptions
 help:

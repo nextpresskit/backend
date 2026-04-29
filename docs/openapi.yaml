@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: nextpress-backend API
+  title: NextPressKit API
   version: "0.1.0-phase4"
   description: |
     Authentication supports two modes (configure with `JWT_AUTH_SOURCE` on the server):

@@ -26,7 +26,7 @@ var (
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nextpress_http_requests_total",
-			Help: "Total HTTP requests handled by NextPress.",
+			Help: "Total HTTP requests handled by NextPressKit.",
 		},
 		[]string{"method", "route", "status"},
 	)

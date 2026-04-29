@@ -1,6 +1,6 @@
 # Security and hardening
 
-Practical baseline guidance for secure operation of NextPress.
+Practical baseline guidance for secure operation of NextPressKit.
 
 ## Dependency and CVE review
 
@@ -39,6 +39,8 @@ Cross-site browser flows (SPA on a different origin than the API) require:
 
 - `CORS_ORIGINS` set to the exact frontend origin(s), and the client must use **`credentials: 'include'`** (or equivalent).
 - Cookie attributes aligned with that deployment: defaults use **`SameSite=None`** and **`Secure`** (see `JWT_COOKIE_*` in `.env.example`).
+
+**HTTPS at the browser:** those defaults mean the browser must reach the API over **`https://`** (Nginx + Let’s Encrypt on servers, or **mkcert** locally) for cookies to work in cross-site flows. See [deployment/local.md](deployment/local.md) (local HTTPS, HTTP-only dev options) and [DEPLOYMENT.md § TLS](DEPLOYMENT.md#4-tls-https).
 
 Postman and other non-browser clients can use **cookie mode** (cookie jar after login) or **header mode**; see [`postman/README.md`](../postman/README.md).
 

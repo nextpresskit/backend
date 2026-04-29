@@ -14,7 +14,7 @@
 - [x] Structured logging (zap)
 - [x] Request ID middleware
 - [x] In-memory rate limiting (public / auth / admin groups)
-- [x] Deployment script (`scripts/deploy`)
+- [x] Interactive deploy wizard (`scripts/deploy`, `scripts/deploy.ps1`)
 - [x] Nginx + systemd templates (`deploy/`)
 - [x] Local run helper (`scripts/run_local.sh`)
 

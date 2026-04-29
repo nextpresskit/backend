@@ -47,6 +47,11 @@ logs/
 *.log
 
 # =========================
+# Generated deploy configs (scripts/deploy)
+# =========================
+deploy/generated/
+
+# =========================
 # Scripts
 # =========================
 scripts/tmp/

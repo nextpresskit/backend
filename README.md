@@ -1,6 +1,6 @@
-# Next Press Kit
+# NextPressKit
 
-Next Press Kit is a starter kit for building modern backend APIs using Go, Gin, and PostgreSQL.
+NextPressKit is a starter kit for building modern backend APIs using Go, Gin, and PostgreSQL.
 
 The goal of this project is to give developers a strong starting point they can clone and build on, with common product needs already in place: authentication handling, content creation flows, and an administration area.
 
@@ -37,7 +37,7 @@ make seed
 make run
 ```
 
-The development server runs on `http://localhost:9090`.
+The development server runs on `http://localhost:9090`. For **HTTPS** locally (recommended when testing default **cookie** auth in the browser) or **Ubuntu/macOS** setup detail, see [docs/deployment/local.md](docs/deployment/local.md) and [docs/deployment/macos.md](docs/deployment/macos.md).
 
 To run without `Ctrl+C` terminal interrupt status noise, use background mode:
 
@@ -64,13 +64,14 @@ make seed             Run database seeders.
 make graphql          Regenerate gqlgen code from the GraphQL schema.
 make security-check   Run dependency vulnerability scanning with govulncheck.
 make db-fresh         Drop and recreate the database schema by rerunning migrations.
+make deploy           Interactive deploy wizard: Nginx/TLS/systemd snippets and optional release (see docs/DEPLOYMENT.md).
 ```
 
 Run `make help` for the complete command reference.
 
 ## Frontend Integration
 
-Next Press Kit backend is designed to work with the frontend web project:
+The NextPressKit backend is designed to work with the frontend web project:
 
 * Frontend repo: [nextpresskit/web](https://github.com/nextpresskit/web)
 * Backend repo: [nextpresskit/backend](https://github.com/nextpresskit/backend)
@@ -107,4 +108,4 @@ This project includes documentation for setup, architecture, and operations.
 
 ## About
 
-Next Press Kit backend starter for Go APIs.
+NextPressKit backend starter for Go APIs.

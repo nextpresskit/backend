@@ -11,7 +11,7 @@ type AppConfig struct {
 // LoadAppConfig reads environment variables and returns AppConfig.
 func LoadAppConfig() AppConfig {
 	return AppConfig{
-		Name:        GetEnv("APP_NAME", "NextPress"),
+		Name:        GetEnv("APP_NAME", "NextPressKit"),
 		Env:         GetEnv("APP_ENV", "local"),
 		Port:        GetEnv("APP_PORT", "9090"),
 		APIBasePath: normalizeBasePath(GetEnv("API_BASE_PATH", "")),

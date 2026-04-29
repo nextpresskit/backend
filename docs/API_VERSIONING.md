@@ -1,6 +1,6 @@
 # API Versioning Strategy
 
-This document records the current API versioning decision for NextPress and how to evolve it safely.
+This document records the current API versioning decision for NextPressKit and how to evolve it safely.
 
 ## Current Decision
 

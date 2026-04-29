@@ -5,8 +5,9 @@ How this folder is organised (aligned with [Diátaxis](https://diataxis.fr/): tu
 | Type | Document | Purpose |
 |------|----------|---------|
 | **Tutorial** | [Root `README.md`](../README.md) | Fast path: clone, configure, run locally. |
-| **How-to** | [Deployment (servers)](DEPLOYMENT.md) | Ubuntu, Nginx, systemd, `scripts/deploy`, branches. |
-| **How-to** | [Local development](deployment/local.md) | Laptop setup, optional Nginx/systemd, ES/GraphQL, tests. |
+| **How-to** | [Deployment (servers)](DEPLOYMENT.md) | Ubuntu, Nginx, systemd, HTTPS (Certbot), interactive `scripts/deploy`. |
+| **How-to** | [Local development](deployment/local.md) | Laptop setup, HTTPS with mkcert, optional Nginx/systemd, ES/GraphQL, tests. |
+| **How-to** | [Local development (macOS)](deployment/macos.md) | Homebrew, paths, mkcert, Nginx on Mac. |
 | **How-to** | [Elasticsearch operations runbook](ELASTICSEARCH_OPERATIONS.md) | Index templates, upgrades/reindex, multi-cluster operations. |
 | **Explanation** | [API versioning strategy](API_VERSIONING.md) | Current decision (`API_BASE_PATH`) and migration paths (URL/header versioning). |
 | **How-to** | [Database seeding](SEEDING.md) | Run seeders, RBAC defaults, permission codes. |
@@ -34,7 +35,7 @@ docs/README.md  (this page) ─►  map of every doc
        ├── TODO.md  ──────────►  full [x] / [ ] checklist (source of truth for scope)
        ├── openapi.yaml  ─────►  REST reference
        ├── ELASTICSEARCH_OPERATIONS.md  ─►  ES templates, upgrades, multi-cluster runbook
-       ├── DEPLOYMENT.md + deployment/local.md  ─►  run on server vs laptop
+       ├── DEPLOYMENT.md + deployment/local.md + deployment/macos.md  ─►  server (Ubuntu) vs laptop; HTTPS
        ├── SEEDING.md  ───────►  RBAC seed + permission table
        └── CONTRIBUTING.md  ──►  when to update the above on a PR
 ```
@@ -52,5 +53,7 @@ Ready-made collections: [`postman/`](../postman) (see [`postman/README.md`](../p
 
 - `deploy/systemd/nextpress-backend@.service`
 - `deploy/nginx/*.conf`
+- `deploy/nginx/production.ssl-snippet.conf.example` (optional manual TLS)
+- `scripts/deploy` (bash) / `scripts/deploy.ps1` — interactive wizard → `deploy/generated/` (see [DEPLOYMENT.md § Interactive deploy](DEPLOYMENT.md#interactive-deploy-scriptsdeploy))
 
-Instructions live in [DEPLOYMENT.md](DEPLOYMENT.md).
+Instructions live in [DEPLOYMENT.md](DEPLOYMENT.md) and [deployment/local.md](deployment/local.md).

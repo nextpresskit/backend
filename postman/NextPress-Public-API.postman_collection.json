@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "nextpress-public-api",
-    "name": "NextPress Public API",
-    "description": "Public and auth endpoints for NextPress backend. Uses {{base_url}}.\n\nAuth: set environment `jwt_auth_source` to `cookie` (default, matches server `JWT_AUTH_SOURCE`) or `header`. Cookie mode uses Postman's cookie jar after `POST /auth/login` (no tokens in JSON). Header mode stores tokens from JSON and sends `Authorization: Bearer …` via the collection pre-request script.",
+    "name": "NextPressKit Public API",
+    "description": "Public and auth endpoints for the NextPressKit backend. Uses {{base_url}}.\n\nAuth: set environment `jwt_auth_source` to `cookie` (default, matches server `JWT_AUTH_SOURCE`) or `header`. Cookie mode uses Postman's cookie jar after `POST /auth/login` (no tokens in JSON). Header mode stores tokens from JSON and sends `Authorization: Bearer …` via the collection pre-request script.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [

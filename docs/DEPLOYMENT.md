@@ -1,16 +1,39 @@
 # Deployment
 
-How to run NextPress Backend on **Ubuntu** behind **Nginx** and **systemd**, using **`scripts/deploy`**. For development on your own machine (foreground `make run` or optional local Nginx/systemd), see [Local development](deployment/local.md).
+How to run **NextPressKit** on **Ubuntu** behind **Nginx** and **systemd**, using **`scripts/deploy`**. For development on your own machine (foreground `make run` or optional local Nginx/systemd), see [Local development](deployment/local.md) and [macOS](deployment/macos.md).
+
+## Already running the project?
+
+Existing clones keep working: HTTP Nginx configs, `APP_PORT`, and `scripts/deploy` are unchanged. **HTTPS is an optional upgrade** (Let’s Encrypt below). If you add TLS, update **`CORS_ORIGINS`** and client base URLs to `https://` where applicable. Local HTTPS with mkcert is in [deployment/local.md](deployment/local.md).
 
 ## Contents
 
+- [Interactive deploy (`scripts/deploy`)](#interactive-deploy-scriptsdeploy)
 - [Git branches](#git-branches)
 - [Environment matrix](#environment-matrix)
-- [What `scripts/deploy` does](#what-scriptsdeploy-does)
 - [Prerequisites](#server-prerequisites)
 - [First clone](#first-clones)
 - [Per-environment setup](#per-environment-setup-repeat-for-each-tier)
 - [Config templates](#config-templates)
+
+---
+
+## Interactive deploy (`scripts/deploy`)
+
+**Always interactive** (no `production`/`staging` CLI arguments). From the **clone root**:
+
+| Platform | Command |
+|----------|---------|
+| Linux / macOS / Git Bash | `./scripts/deploy` or `make deploy` |
+| Windows (PowerShell) | `.\scripts\deploy.ps1` |
+
+The wizard asks for **tier** (production / staging / dev / local), whether to **generate Nginx** (+ optional **systemd** on Linux), **server_name**, **paths**, **APP_PORT**, **Nginx listen port**, and **TLS mode** (HTTP only, Let’s Encrypt with optional `certbot --nginx`, or HTTPS with PEM paths). It writes **`deploy/generated/<slug>/`** (gitignored) with `nginx-nextpress-<tier>.conf`, optional `nextpress-backend@<tier>.service`, and a **README** with install commands.
+
+On **Linux**, you can opt in to **`sudo`** copy into `/etc/nginx` and reload Nginx. You can optionally run **`certbot --nginx`** when TLS mode is Let’s Encrypt.
+
+Finally, you can run the **release pipeline** on the current machine: **git** fetch/checkout/pull for the mapped branch (`production` → `main`, etc.), **`go build`** (`bin/server`, `bin/migrate`, `bin/seed`), **migrations**, optional **seed** (or when `RUN_SEED_ON_DEPLOY=true`), and **systemd restart** if the unit exists.
+
+You can still use the checked-in files under `deploy/nginx/` and `deploy/systemd/`; the wizard is optional.
 
 ---
 
@@ -42,25 +65,6 @@ One row per deployed instance. Ports are examples when several envs share a host
 | Production | `main` | `/var/www/nextpress-backend-production` | `production` | `nextpress-backend@production` | `deploy/nginx/production.conf` | 9090 |
 | Staging | `staging` | `/var/www/nextpress-backend-staging` | `staging` | `nextpress-backend@staging` | `deploy/nginx/staging.conf` | 9091 |
 | Dev | `dev` | `/var/www/nextpress-backend-dev` | `dev` | `nextpress-backend@dev` | `deploy/nginx/dev.conf` | 9092 |
-
----
-
-## What `scripts/deploy` does
-
-Run from the **root of that environment’s clone** (`.env` required).
-
-| Step | Action |
-|------|--------|
-| Checkout | `git fetch` + checkout/pull branch for the tier |
-| Build | `bin/server`, `bin/migrate`, `bin/seed` |
-| Migrate | `./bin/migrate -command=up` |
-| Seed | `./bin/seed` only if `RUN_SEED_ON_DEPLOY=true` |
-| Restart | `systemctl restart nextpress-backend@<tier>` if unit exists |
-
-```bash
-./scripts/deploy                  # production
-./scripts/deploy production | staging | dev
-```
 
 ---
 
@@ -119,26 +123,76 @@ Use `staging.conf` / `dev.conf` for other tiers. Edit **`server_name`** and **`p
 
 **Uploads:** align `.env` (`MEDIA_PUBLIC_BASE_URL=/uploads`, `MEDIA_STORAGE_DIR=storage/uploads`) with Nginx `alias` to the absolute `storage/uploads` path.
 
-### 4. TLS
+### 4. TLS (HTTPS)
+
+Terminate TLS at **Nginx** so browsers talk `https://` to your `server_name`. The Go process stays on **`http://127.0.0.1:<APP_PORT>`**; keep **`proxy_set_header X-Forwarded-Proto $scheme`** as in [`deploy/nginx/production.conf`](../deploy/nginx/production.conf) so the scheme reflects the client connection after Certbot adds `listen 443 ssl`.
+
+#### Prerequisites
+
+- **DNS:** `A` (and `AAAA` if you use IPv6) records for the hostname point to this server.
+- **Firewall:** allow **80** (ACME HTTP-01 challenge and redirect) and **443**.
+- **Nginx:** site enabled with the real `server_name` (matches the certificate you request).
+
+#### Certbot (recommended)
+
+Install the Nginx plugin and obtain a certificate; Certbot will add a `listen 443 ssl` server (or extend your `server` block) and wire `ssl_certificate` paths.
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your.domain.example
+sudo certbot --nginx -d api.yourdomain.com
 ```
 
-### 5. Deploy
+Repeat `-d` for each hostname on the same cert, or run Certbot separately per tier (`api-staging.yourdomain.com`, etc.). Use **staging** first if you are validating a new setup.
+
+Certbot usually adds **HTTP → HTTPS** redirect (`return 301` or equivalent). If you manage configs by hand, add a small `listen 80` server that only redirects:
+
+```nginx
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+#### Renewal
+
+Let’s Encrypt certificates are short-lived. On Ubuntu, `certbot` typically installs a **systemd timer**; check with:
+
+```bash
+systemctl list-timers | grep certbot
+sudo certbot renew --dry-run
+```
+
+If `renew` succeeds, production renewals should run unattended. After manual cert changes, `sudo nginx -t && sudo systemctl reload nginx`.
+
+#### Verification
+
+```bash
+curl -sI https://api.yourdomain.com/health
+openssl s_client -connect api.yourdomain.com:443 -servername api.yourdomain.com </dev/null 2>/dev/null | openssl x509 -noout -dates
+```
+
+#### Manual certificates (no Certbot)
+
+If you use another CA or internal PKI, see the commented template **[`deploy/nginx/production.ssl-snippet.conf.example`](../deploy/nginx/production.ssl-snippet.conf.example)** for `listen 443 ssl`, certificate paths, and the same `proxy_pass` / `X-Forwarded-Proto` pattern.
+
+### 5. Run the interactive deploy wizard
+
+From that environment’s clone (after `.env`, Nginx, and systemd are in place):
 
 ```bash
 chmod +x scripts/deploy
-./scripts/deploy <tier>
+./scripts/deploy
 ```
+
+Use the prompts to refresh generated configs, run **Let’s Encrypt** if needed, and optionally **build / migrate / restart** the service.
 
 ---
 
 ## Config templates
 
-`deploy/nginx/` and `deploy/systemd/` contain only snippets; procedural steps are in this document.
+`deploy/nginx/` and `deploy/systemd/` contain only snippets; procedural steps are in this document. Optional manual TLS comments: [`deploy/nginx/production.ssl-snippet.conf.example`](../deploy/nginx/production.ssl-snippet.conf.example).
 
 ---
 
-**See also:** [Documentation index](README.md) · [Local development](deployment/local.md) · [TODO](TODO.md) (ops / platform **`[ ]`** items)
+**See also:** [Documentation index](README.md) · [Local development](deployment/local.md) · [macOS](deployment/macos.md) · [TODO](TODO.md) (ops / platform **`[ ]`** items)

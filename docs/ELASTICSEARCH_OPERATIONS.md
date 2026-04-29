@@ -1,6 +1,6 @@
 # Elasticsearch operations runbook
 
-Operational guidance for running NextPress search in production-like environments.
+Operational guidance for running NextPressKit search in production-like environments.
 
 Scope:
 - Index templates and mappings strategy

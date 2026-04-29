@@ -55,7 +55,7 @@ The seeded superadmin user is deterministic and updated on reruns (same identity
 
 ## Deploy
 
-Set `RUN_SEED_ON_DEPLOY=true` in `.env` to execute `./bin/seed` during `scripts/deploy`.
+Set `RUN_SEED_ON_DEPLOY=true` in `.env` to run `./bin/seed` automatically when you choose the **release** steps in the interactive `./scripts/deploy` wizard.
 
 ---
 
