@@ -92,6 +92,8 @@ cp .env.example .env
 
 Set `APP_PORT`, `DB_*`, `JWT_SECRET`, and **`APP_ENV`** (`production` | `staging` | `dev`).
 
+For browser clients, configure **`JWT_AUTH_SOURCE`** (`cookie` default vs `header`), **`JWT_COOKIE_*`**, and an explicit **`CORS_ORIGINS`** when using cross-site HttpOnly cookies (see [SECURITY.md](SECURITY.md)).
+
 ### 2. systemd (install template once per machine)
 
 Repository file: `deploy/systemd/nextpress-backend@.service` (`WorkingDirectory=/var/www/nextpress-backend-%i`, `APP_ENV=%i`, `EnvironmentFile`, `ExecStart=.../bin/server`).

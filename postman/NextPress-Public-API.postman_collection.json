@@ -2,12 +2,47 @@
   "info": {
     "_postman_id": "nextpress-public-api",
     "name": "NextPress Public API",
-    "description": "Public and auth endpoints for NextPress backend. Uses {{base_url}}.",
+    "description": "Public and auth endpoints for NextPress backend. Uses {{base_url}}.\n\nAuth: set environment `jwt_auth_source` to `cookie` (default, matches server `JWT_AUTH_SOURCE`) or `header`. Cookie mode uses Postman's cookie jar after `POST /auth/login` (no tokens in JSON). Header mode stores tokens from JSON and sends `Authorization: Bearer …` via the collection pre-request script.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const mode = String(pm.environment.get(\"jwt_auth_source\") || \"cookie\").toLowerCase();",
+          "pm.request.headers.remove(\"Authorization\");",
+          "if (mode === \"header\") {",
+          "    const t = pm.environment.get(\"access_token\");",
+          "    if (t) {",
+          "        pm.request.headers.upsert({ key: \"Authorization\", value: \"Bearer \" + t });",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
   "item": [
     {
       "name": "Auth",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const mode = String(pm.environment.get(\"jwt_auth_source\") || \"cookie\").toLowerCase();",
+              "const name = pm.info.requestName || \"\";",
+              "if (mode !== \"cookie\") { return; }",
+              "if (name.indexOf(\"POST /auth/refresh\") !== 0 && name.indexOf(\"POST /auth/logout\") !== 0) { return; }",
+              "pm.request.body.mode = \"raw\";",
+              "pm.request.body.raw = \"\";",
+              "pm.request.headers.remove(\"Content-Type\");"
+            ]
+          }
+        }
+      ],
       "item": [
         {
           "name": "POST /auth/login",
@@ -41,11 +76,14 @@
                 "exec": [
                   "if (pm.response.code >= 200 && pm.response.code < 300) {",
                   "    var data = pm.response.json();",
-                  "    if (data.tokens && data.tokens.accessToken) pm.environment.set(\"access_token\", data.tokens.accessToken);",
+                  "    if (data.tokens && data.tokens.accessToken) {",
+                  "        pm.environment.set(\"access_token\", data.tokens.accessToken);",
+                  "        pm.environment.set(\"admin_access_token\", data.tokens.accessToken);",
+                  "    }",
                   "    if (data.tokens && data.tokens.refreshToken) pm.environment.set(\"refresh_token\", data.tokens.refreshToken);",
-                  "    if (data.access_token) pm.environment.set(\"access_token\", data.access_token);",
+                  "    if (data.access_token) { pm.environment.set(\"access_token\", data.access_token); pm.environment.set(\"admin_access_token\", data.access_token); }",
                   "    if (data.refresh_token) pm.environment.set(\"refresh_token\", data.refresh_token);",
-                  "    if (data.accessToken) pm.environment.set(\"access_token\", data.accessToken);",
+                  "    if (data.accessToken) { pm.environment.set(\"access_token\", data.accessToken); pm.environment.set(\"admin_access_token\", data.accessToken); }",
                   "    if (data.refreshToken) pm.environment.set(\"refresh_token\", data.refreshToken);",
                   "}"
                 ]
@@ -57,12 +95,7 @@
           "name": "GET /auth/me",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/auth/me",
               "host": [
@@ -288,38 +321,6 @@
               ],
               "path": [
                 "health"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /health",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/health",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /ready",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/ready",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "ready"
               ]
             }
           }

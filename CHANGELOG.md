@@ -10,10 +10,11 @@ Format:
 ## Unreleased
 
 ### Added
-- (fill in during development)
+- Postman: `jwt_auth_source` on all environments; collection pre-request scripts for cookie vs Bearer JWT; Auth folder script for cookie-mode refresh/logout bodies.
+- OpenAPI: `cookieAuth` security scheme, auth response and cookie documentation, optional refresh/logout bodies.
 
 ### Changed
-- (fill in during development)
+- Documentation: root `README`, `docs/README`, `docs/SECURITY`, `docs/DEPLOYMENT`, `docs/deployment/local`, and `postman/README` updated for HttpOnly JWT cookies and `JWT_AUTH_SOURCE`.
 
 ### Fixed
 - (fill in during development)

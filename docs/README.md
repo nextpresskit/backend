@@ -44,7 +44,9 @@ docs/README.md  (this page) ─►  map of every doc
 
 ## Machine-readable API
 
-Import [`openapi.yaml`](openapi.yaml) into Postman, Stoplight, or your gateway. Regenerate GraphQL code after schema edits: `make graphql`.
+Import [`openapi.yaml`](openapi.yaml) into Postman, Stoplight, or your gateway. It documents **Bearer** and **cookie** JWT security for protected routes. Regenerate GraphQL code after schema edits: `make graphql`.
+
+Ready-made collections: [`postman/`](../postman) (see [`postman/README.md`](../postman/README.md) for `jwt_auth_source` / cookie jar vs header mode).
 
 ## Config templates
 

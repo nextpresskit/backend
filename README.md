@@ -86,6 +86,13 @@ This project includes an OpenAPI-first API contract and optional GraphQL support
 * GraphQL is optional and can be enabled via environment configuration.
 * API base path is configurable using `API_BASE_PATH`.
 
+### Authentication (JWT)
+
+* **`JWT_AUTH_SOURCE=cookie` (default):** access and refresh tokens are issued as **HttpOnly** cookies (`JWT_ACCESS_COOKIE_NAME`, `JWT_REFRESH_COOKIE_NAME`). Login and refresh return **`user`** only in JSON. Protected routes accept the access cookie or, if you switch the server to header mode, a Bearer token.
+* **`JWT_AUTH_SOURCE=header`:** tokens are returned in JSON (`tokens` + `user` on login/refresh); send **`Authorization: Bearer <access_jwt>`** to protected routes.
+
+Cross-site browser apps must set **`CORS_ORIGINS`** to the real frontend origin and use **`credentials: 'include'`**. See [docs/SECURITY.md](docs/SECURITY.md) and [`.env.example`](.env.example).
+
 ## Documentation
 
 This project includes documentation for setup, architecture, and operations.

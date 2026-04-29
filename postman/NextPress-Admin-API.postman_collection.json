@@ -2,9 +2,27 @@
   "info": {
     "_postman_id": "nextpress-admin-api",
     "name": "NextPress Admin API",
-    "description": "Protected admin endpoints under /admin. Uses Authorization: Bearer {{admin_access_token}}.",
+    "description": "Protected admin endpoints under /admin.\n\nAuth: set environment `jwt_auth_source` to `cookie` (default) or `header`. Cookie mode relies on Postman's cookie jar after `POST /auth/login` from the Public collection (same `base_url`). Header mode sends `Authorization: Bearer {{admin_access_token}}` from the collection pre-request script (run login in header mode to populate tokens).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const mode = String(pm.environment.get(\"jwt_auth_source\") || \"cookie\").toLowerCase();",
+          "pm.request.headers.remove(\"Authorization\");",
+          "if (mode === \"header\") {",
+          "    const t = pm.environment.get(\"admin_access_token\");",
+          "    if (t) {",
+          "        pm.request.headers.upsert({ key: \"Authorization\", value: \"Bearer \" + t });",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
   "item": [
     {
       "name": "Media",
