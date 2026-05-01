@@ -25,8 +25,8 @@ type ReadinessCheck struct {
 var (
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "nextpress_http_requests_total",
-			Help: "Total HTTP requests handled by NextPressKit.",
+			Name: "nextpresskit_http_requests_total",
+			Help: "Total HTTP requests handled by the API.",
 		},
 		[]string{"method", "route", "status"},
 	)
@@ -119,7 +119,7 @@ func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger, db *gorm.DB, ap
 	// backend explicitly (useful in multi-service environments).
 	engine.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"service": "nextpress-backend",
+			"service": "nextpresskit-backend",
 			"version": appVersion,
 		})
 	})

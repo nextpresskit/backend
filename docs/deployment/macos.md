@@ -69,17 +69,17 @@ If `nginx` is on your `PATH`, `nginx -t` is enough. Use the prefix that matches 
 
 2. Generate certs and configure Nginx as in [local.md § HTTPS locally (recommended)](local.md#https-locally-recommended). Point `ssl_certificate` and `ssl_certificate_key` at the `.pem` files mkcert created.
 
-3. Optional **custom hostname** (for example `api.nextpress.local`):
+3. Optional **custom hostname** (for example `api.nextpresskit.local`):
 
    ```bash
-   sudo sh -c 'echo "127.0.0.1 api.nextpress.local" >> /etc/private/hosts'
+   sudo sh -c 'echo "127.0.0.1 api.nextpresskit.local" >> /etc/private/hosts'
    ```
 
-   Use that name in `server_name` and in `mkcert api.nextpress.local`.
+   Use that name in `server_name` and in `mkcert api.nextpresskit.local`.
 
 ## systemd
 
-macOS does not use systemd. Use foreground **`make run`**, **`make start`** for background, or define a **LaunchAgent** if you need login-level autostart (out of scope here; mirror the working directory and `ExecStart` from [`deploy/systemd/nextpress-backend@.service`](../../deploy/systemd/nextpress-backend@.service) conceptually).
+macOS does not use systemd. Use foreground **`make run`**, **`make start`** for background, or define a **LaunchAgent** if you need login-level autostart (out of scope here; mirror the working directory and `ExecStart` from [`deploy/systemd/nextpresskit-backend@.service`](../../deploy/systemd/nextpresskit-backend@.service) conceptually).
 
 ## Server deployment
 

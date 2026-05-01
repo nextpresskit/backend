@@ -1,0 +1,19 @@
+# Example unit: basename matches APP_SERVICE_UNIT (default nextpresskit-backend).
+# Generated deploy snippets use your .env value; rename this file to match when copying by hand.
+[Unit]
+Description=nextpresskit-backend (%i)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/nextpresskit-backend-%i
+Environment=APP_ENV=%i
+EnvironmentFile=/var/www/nextpresskit-backend-%i/.env
+ExecStart=/var/www/nextpresskit-backend-%i/bin/server
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

@@ -22,7 +22,7 @@ const (
 // SeedFullDataset inserts deterministic demo records across all tables.
 // It also ensures a superadmin user exists and is linked to admin/superadmin roles.
 func SeedFullDataset(db *gorm.DB) error {
-	superadminEmail := envOrDefault("SEED_SUPERADMIN_EMAIL", "superadmin@nextpress.local")
+	superadminEmail := envOrDefault("SEED_SUPERADMIN_EMAIL", "superadmin@nextpresskit.local")
 	superadminPassword := envOrDefault("SEED_SUPERADMIN_PASSWORD", "SuperAdmin123!")
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(superadminPassword), bcrypt.DefaultCost)
@@ -109,7 +109,7 @@ func seedUsers(tx *gorm.DB, superadminEmail, passwordHash string) error {
 		id := seedUUID(0x0100, i)
 		firstName := fmt.Sprintf("User%03d", i)
 		lastName := "Seed"
-		email := fmt.Sprintf("user%03d@nextpress.local", i)
+		email := fmt.Sprintf("user%03d@nextpresskit.local", i)
 		if i == 1 {
 			id = superadminUserID
 			firstName = "Super"

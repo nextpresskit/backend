@@ -7,8 +7,9 @@ export NP_ROOT="$ROOT"
 # shellcheck source=scripts/lib/app-port.sh
 source "$ROOT/scripts/lib/app-port.sh"
 
-API_PID_FILE="${API_PID_FILE:-$ROOT/.tmp/nextpress-api.pid}"
-API_LOG_FILE="${API_LOG_FILE:-$ROOT/.tmp/nextpress-api.log}"
+_dev_rt="$(np_dev_runtime_basename)"
+API_PID_FILE="${API_PID_FILE:-$ROOT/.tmp/${_dev_rt}-api.pid}"
+API_LOG_FILE="${API_LOG_FILE:-$ROOT/.tmp/${_dev_rt}-api.log}"
 mkdir -p "$(dirname "$API_PID_FILE")"
 
 if [[ -f "$API_PID_FILE" ]]; then

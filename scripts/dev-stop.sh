@@ -7,7 +7,8 @@ export NP_ROOT="$ROOT"
 # shellcheck source=scripts/lib/app-port.sh
 source "$ROOT/scripts/lib/app-port.sh"
 
-API_PID_FILE="${API_PID_FILE:-$ROOT/.tmp/nextpress-api.pid}"
+_dev_rt="$(np_dev_runtime_basename)"
+API_PID_FILE="${API_PID_FILE:-$ROOT/.tmp/${_dev_rt}-api.pid}"
 
 if [[ -f "$API_PID_FILE" ]]; then
   pid="$(cat "$API_PID_FILE")"

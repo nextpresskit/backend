@@ -27,7 +27,7 @@ Existing clones keep working: HTTP Nginx configs, `APP_PORT`, and `scripts/deplo
 | Linux / macOS / Git Bash | `./scripts/deploy` or `make deploy` |
 | Windows (PowerShell) | `.\scripts\deploy.ps1` |
 
-The wizard asks for **tier** (production / staging / dev / local), whether to **generate Nginx** (+ optional **systemd** on Linux), **server_name**, **paths**, **APP_PORT**, **Nginx listen port**, and **TLS mode** (HTTP only, Let’s Encrypt with optional `certbot --nginx`, or HTTPS with PEM paths). It writes **`deploy/generated/<slug>/`** (gitignored) with `nginx-nextpress-<tier>.conf`, optional `nextpress-backend@<tier>.service`, and a **README** with install commands.
+The wizard asks for **tier** (production / staging / dev / local), whether to **generate Nginx** (+ optional **systemd** on Linux), **server_name**, **paths**, **APP_PORT**, **Nginx listen port**, and **TLS mode** (HTTP only, Let’s Encrypt with optional `certbot --nginx`, or HTTPS with PEM paths). It writes **`deploy/generated/<slug>/`** (gitignored) with `nginx-nextpresskit-backend-<tier>.conf`, optional `nextpresskit-backend@<tier>.service`, and a **README** with install commands.
 
 On **Linux**, you can opt in to **`sudo`** copy into `/etc/nginx` and reload Nginx. You can optionally run **`certbot --nginx`** when TLS mode is Let’s Encrypt.
 
@@ -41,9 +41,9 @@ You can still use the checked-in files under `deploy/nginx/` and `deploy/systemd
 
 | Branch | Role | Typical clone path |
 |--------|------|--------------------|
-| `dev` | Integration | `/var/www/nextpress-backend-dev` |
-| `staging` | Pre-production | `/var/www/nextpress-backend-staging` |
-| `main` | Production | `/var/www/nextpress-backend-production` |
+| `dev` | Integration | `/var/www/nextpresskit-backend-dev` |
+| `staging` | Pre-production | `/var/www/nextpresskit-backend-staging` |
+| `main` | Production | `/var/www/nextpresskit-backend-production` |
 
 Promotion: merge and push `dev` → `staging` → `main`.
 
@@ -62,9 +62,9 @@ One row per deployed instance. Ports are examples when several envs share a host
 
 | Tier | Branch | Directory | `APP_ENV` | systemd | Nginx config | Example `APP_PORT` |
 |------|--------|-----------|-----------|---------|--------------|------------------|
-| Production | `main` | `/var/www/nextpress-backend-production` | `production` | `nextpress-backend@production` | `deploy/nginx/production.conf` | 9090 |
-| Staging | `staging` | `/var/www/nextpress-backend-staging` | `staging` | `nextpress-backend@staging` | `deploy/nginx/staging.conf` | 9091 |
-| Dev | `dev` | `/var/www/nextpress-backend-dev` | `dev` | `nextpress-backend@dev` | `deploy/nginx/dev.conf` | 9092 |
+| Production | `main` | `/var/www/nextpresskit-backend-production` | `production` | `nextpresskit-backend@production` | `deploy/nginx/production.conf` | 9090 |
+| Staging | `staging` | `/var/www/nextpresskit-backend-staging` | `staging` | `nextpresskit-backend@staging` | `deploy/nginx/staging.conf` | 9091 |
+| Dev | `dev` | `/var/www/nextpresskit-backend-dev` | `dev` | `nextpresskit-backend@dev` | `deploy/nginx/dev.conf` | 9092 |
 
 ---
 
@@ -78,7 +78,7 @@ Ubuntu 22.04+ (or similar), Go (`go.mod`), PostgreSQL, Nginx, Git, systemd, depl
 
 ```bash
 sudo mkdir -p /var/www && sudo chown "$USER" /var/www
-git clone <repo-url> /var/www/nextpress-backend-production
+git clone <repo-url> /var/www/nextpresskit-backend-production
 ```
 
 Repeat paths for staging/dev if needed.
@@ -90,7 +90,7 @@ Repeat paths for staging/dev if needed.
 ### 1. Environment file
 
 ```bash
-cd /var/www/nextpress-backend-<tier>   # production | staging | dev
+cd /var/www/nextpresskit-backend-<tier>   # production | staging | dev
 cp .env.example .env
 ```
 
@@ -100,13 +100,13 @@ For browser clients, configure **`JWT_AUTH_SOURCE`** (`cookie` default vs `heade
 
 ### 2. systemd (install template once per machine)
 
-Repository file: `deploy/systemd/nextpress-backend@.service` (`WorkingDirectory=/var/www/nextpress-backend-%i`, `APP_ENV=%i`, `EnvironmentFile`, `ExecStart=.../bin/server`).
+Repository file: `deploy/systemd/nextpresskit-backend@.service` (`WorkingDirectory=/var/www/nextpresskit-backend-%i`, `APP_ENV=%i`, `EnvironmentFile`, `ExecStart=.../bin/server`).
 
 ```bash
-sudo cp deploy/systemd/nextpress-backend@.service /etc/systemd/system/
+sudo cp deploy/systemd/nextpresskit-backend@.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable nextpress-backend@<tier>
-sudo systemctl start nextpress-backend@<tier>
+sudo systemctl enable nextpresskit-backend@<tier>
+sudo systemctl start nextpresskit-backend@<tier>
 ```
 
 `<tier>` ∈ `production`, `staging`, `dev`.
@@ -114,8 +114,8 @@ sudo systemctl start nextpress-backend@<tier>
 ### 3. Nginx
 
 ```bash
-sudo cp deploy/nginx/production.conf /etc/nginx/sites-available/nextpress-backend-production.conf
-sudo ln -sf /etc/nginx/sites-available/nextpress-backend-production.conf /etc/nginx/sites-enabled/
+sudo cp deploy/nginx/production.conf /etc/nginx/sites-available/nextpresskit-backend-production.conf
+sudo ln -sf /etc/nginx/sites-available/nextpresskit-backend-production.conf /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 

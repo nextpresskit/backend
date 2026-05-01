@@ -30,7 +30,7 @@ make seed-build && ./bin/seed
 Configure in `.env` (defaults shown in `.env.example`):
 
 ```bash
-SEED_SUPERADMIN_EMAIL=superadmin@nextpress.local
+SEED_SUPERADMIN_EMAIL=superadmin@nextpresskit.local
 SEED_SUPERADMIN_PASSWORD=SuperAdmin123!
 ```
 

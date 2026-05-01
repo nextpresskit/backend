@@ -39,7 +39,7 @@ Install a supported Go toolchain if the distro package is too old (see [Go downl
 ## Setup
 
 ```bash
-git clone <repo-url> nextpress-backend && cd nextpress-backend
+git clone <repo-url> nextpresskit-backend && cd nextpresskit-backend
 go mod download
 cp .env.example .env
 ```
@@ -84,22 +84,22 @@ Use **[mkcert](https://github.com/FiloSottile/mkcert)** so the OS and browsers t
 2. **Issue a certificate** for the hostnames you will use (examples):
 
    ```bash
-   mkdir -p ~/.local/share/nextpress-ssl
-   cd ~/.local/share/nextpress-ssl
-   mkcert localhost 127.0.0.1 ::1 api.nextpress.local
+   mkdir -p ~/.local/share/nextpresskit-ssl
+   cd ~/.local/share/nextpresskit-ssl
+   mkcert localhost 127.0.0.1 ::1 api.nextpresskit.local
    ```
 
-   This creates `localhost+2.pem` and `localhost+2-key.pem` (names vary with the command). Add `api.nextpress.local` to `/etc/hosts` pointing at `127.0.0.1` if you use a fake hostname.
+   This creates `localhost+2.pem` and `localhost+2-key.pem` (names vary with the command). Add `api.nextpresskit.local` to `/etc/hosts` pointing at `127.0.0.1` if you use a fake hostname.
 
 3. **Nginx** terminates TLS and proxies to the Go process (same idea as [Optional: Nginx in front](#optional-nginx-in-front-local)). Add a `server` block that listens on **443** and references the mkcert files:
 
    ```nginx
    server {
        listen 443 ssl;
-       server_name localhost api.nextpress.local;
+       server_name localhost api.nextpresskit.local;
 
-       ssl_certificate     /home/YOU/.local/share/nextpress-ssl/localhost+2.pem;
-       ssl_certificate_key /home/YOU/.local/share/nextpress-ssl/localhost+2-key.pem;
+       ssl_certificate     /home/YOU/.local/share/nextpresskit-ssl/localhost+2.pem;
+       ssl_certificate_key /home/YOU/.local/share/nextpresskit-ssl/localhost+2-key.pem;
 
        location /uploads/ {
            alias /absolute/path/to/your/clone/storage/uploads/;
@@ -125,7 +125,7 @@ Use **[mkcert](https://github.com/FiloSottile/mkcert)** so the OS and browsers t
    sudo nginx -t && sudo systemctl reload nginx
    ```
 
-   Call the API at `https://localhost/...` or `https://api.nextpress.local/...`. Set `CORS_ORIGINS` to your frontend’s `https://` origin if it is not same-site.
+   Call the API at `https://localhost/...` or `https://api.nextpresskit.local/...`. Set `CORS_ORIGINS` to your frontend’s `https://` origin if it is not same-site.
 
 **Without Nginx:** you can terminate TLS with another tool (for example **Caddy** with automatic local HTTPS, or a dev proxy). The app still listens on HTTP internally; only the edge needs TLS for browser clients.
 
@@ -141,38 +141,38 @@ Use this when you want the API as a managed service (restart on failure, start o
 
 2. **Choose how paths map to the unit file**
 
-   The checked-in template [`deploy/systemd/nextpress-backend@.service`](../../deploy/systemd/nextpress-backend@.service) expects:
+   The checked-in template [`deploy/systemd/nextpresskit-backend@.service`](../../deploy/systemd/nextpresskit-backend@.service) expects:
 
-   - Clone at `/var/www/nextpress-backend-<instance>` (for example `<instance>` = `local` → `/var/www/nextpress-backend-local`).
-   - `ExecStart` = `/var/www/nextpress-backend-<instance>/bin/server`
+   - Clone at `/var/www/nextpresskit-backend-<instance>` (for example `<instance>` = `local` → `/var/www/nextpresskit-backend-local`).
+   - `ExecStart` = `/var/www/nextpresskit-backend-<instance>/bin/server`
    - `Environment=APP_ENV=%i` — use instance name **`local`** so the process gets `APP_ENV=local` (this key overrides `APP_ENV` from `.env` if both are set).
 
-   **Layout matching the template:** clone directly into `/var/www/nextpress-backend-local` (a real directory, not a symlink into `$HOME`, so a recursive `chown` for `www-data` does not touch your home tree). Then:
+   **Layout matching the template:** clone directly into `/var/www/nextpresskit-backend-local` (a real directory, not a symlink into `$HOME`, so a recursive `chown` for `www-data` does not touch your home tree). Then:
 
    ```bash
-   cd /var/www/nextpress-backend-local
+   cd /var/www/nextpresskit-backend-local
    make build
-   sudo cp deploy/systemd/nextpress-backend@.service /etc/systemd/system/
-   sudo chown -R www-data:www-data /var/www/nextpress-backend-local
+   sudo cp deploy/systemd/nextpresskit-backend@.service /etc/systemd/system/
+   sudo chown -R www-data:www-data /var/www/nextpresskit-backend-local
    ```
 
-   If the project must stay under your home directory, **do not** point the stock unit at a symlink and then `chown -R` (that can follow into `$HOME`). Instead copy the unit to a dedicated file (for example `/etc/systemd/system/nextpress-backend-local.service`), set `User=` / `Group=` to your login user, and set `WorkingDirectory`, `EnvironmentFile`, and `ExecStart` to that path. Use the stock template and [DEPLOYMENT.md](../DEPLOYMENT.md) as references.
+   If the project must stay under your home directory, **do not** point the stock unit at a symlink and then `chown -R` (that can follow into `$HOME`). Instead copy the unit to a dedicated file (for example `/etc/systemd/system/nextpresskit-backend-local.service`), set `User=` / `Group=` to your login user, and set `WorkingDirectory`, `EnvironmentFile`, and `ExecStart` to that path. Use the stock template and [DEPLOYMENT.md](../DEPLOYMENT.md) as references.
 
 3. **Enable and start** (instance name `local`):
 
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable --now nextpress-backend@local
+   sudo systemctl enable --now nextpresskit-backend@local
    ```
 
 4. **Logs and status**
 
    ```bash
-   sudo systemctl status nextpress-backend@local
-   journalctl -u nextpress-backend@local -f
+   sudo systemctl status nextpresskit-backend@local
+   journalctl -u nextpresskit-backend@local -f
    ```
 
-After code changes, rebuild and restart: `make build && sudo systemctl restart nextpress-backend@local`. Run migrations from the repo as usual (`make migrate-up`) before or after restarts as needed.
+After code changes, rebuild and restart: `make build && sudo systemctl restart nextpresskit-backend@local`. Run migrations from the repo as usual (`make migrate-up`) before or after restarts as needed.
 
 ## Optional: Nginx in front (local)
 
@@ -183,7 +183,7 @@ Use this to terminate HTTP or HTTPS on a chosen port, serve `/uploads/` from dis
 2. **Start from the dev site config** [`deploy/nginx/dev.conf`](../../deploy/nginx/dev.conf). Copy it and edit paths and ports, for example:
 
    ```bash
-   sudo cp deploy/nginx/dev.conf /etc/nginx/sites-available/nextpress-backend-local.conf
+   sudo cp deploy/nginx/dev.conf /etc/nginx/sites-available/nextpresskit-backend-local.conf
    ```
 
    In that file:
@@ -197,7 +197,7 @@ Use this to terminate HTTP or HTTPS on a chosen port, serve `/uploads/` from dis
 3. **Enable and reload**
 
    ```bash
-   sudo ln -sf /etc/nginx/sites-available/nextpress-backend-local.conf /etc/nginx/sites-enabled/
+   sudo ln -sf /etc/nginx/sites-available/nextpresskit-backend-local.conf /etc/nginx/sites-enabled/
    sudo nginx -t && sudo systemctl reload nginx
    ```
 

@@ -19,6 +19,18 @@ function Get-AppPort {
     "9090"
 }
 
+function Get-DevRuntimeBasename {
+    $envFile = Join-Path $RootDir ".env"
+    if (-not (Test-Path $envFile)) { return "nextpresskit" }
+    foreach ($line in Get-Content $envFile) {
+        if ($line -match '^\s*APP_DEV_RUNTIME_BASENAME\s*=\s*(.+)$') {
+            $b = $matches[1].Trim()
+            if (-not [string]::IsNullOrWhiteSpace($b)) { return $b }
+        }
+    }
+    "nextpresskit"
+}
+
 function Test-PortListen([int]$Port) {
     $c = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     return $null -ne $c
@@ -141,8 +153,9 @@ switch ($cmd) {
     }
     "start" {
         Ensure-Go
-        $pidFile = Join-Path $RootDir ".tmp\nextpress-api.pid"
-        $logFile = Join-Path $RootDir ".tmp\nextpress-api.log"
+        $rt = Get-DevRuntimeBasename
+        $pidFile = Join-Path $RootDir ".tmp\$rt-api.pid"
+        $logFile = Join-Path $RootDir ".tmp\$rt-api.log"
         New-Item -ItemType Directory -Force -Path (Split-Path $pidFile) | Out-Null
         if (Test-Path $pidFile) {
             $oldId = Get-Content $pidFile -ErrorAction SilentlyContinue
@@ -169,7 +182,8 @@ switch ($cmd) {
         }
     }
     "stop" {
-        $pidFile = Join-Path $RootDir ".tmp\nextpress-api.pid"
+        $rt = Get-DevRuntimeBasename
+        $pidFile = Join-Path $RootDir ".tmp\$rt-api.pid"
         if (Test-Path $pidFile) {
             $apiPid = Get-Content $pidFile
             $running = Get-Process -Id $apiPid -ErrorAction SilentlyContinue
@@ -181,7 +195,7 @@ switch ($cmd) {
             }
             Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
         } else {
-            Write-Host "No .tmp\nextpress-api.pid (nothing to stop from start)."
+            Write-Host "No .tmp\$rt-api.pid (nothing to stop from start)."
         }
     }
     "deploy" {

@@ -7,12 +7,20 @@ set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT/.env"
+  set +a
+fi
+LOCAL_HOST="${NEXTPRESS_PUBLIC_HOST:-nextpresskit.local}"
+
 cyan()  { printf '\033[36m%s\033[0m\n' "$*" >&2; }
 green() { printf '\033[32m%s\033[0m\n' "$*" >&2; }
 yellow(){ printf '\033[33m%s\033[0m\n' "$*" >&2; }
 red()   { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 
-SSL_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/nextpress-ssl"
+SSL_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/${APP_LOCAL_SSL_SUBDIR:-nextpresskit-ssl}"
 CERT="$SSL_DIR/cert.pem"
 KEY="$SSL_DIR/key.pem"
 
@@ -143,8 +151,8 @@ fi
 if [[ -n "$MKCERT" ]]; then
   yellow "Ensuring local CA is trusted (mkcert -install)…" >&2
   "$MKCERT" -install >/dev/null 2>&1 || yellow "(mkcert -install skipped or needs your password once.)" >&2
-  green "Generating PEM for nextpresskit.local, localhost, 127.0.0.1, ::1 → $SSL_DIR" >&2
-  if "$MKCERT" -cert-file "$CERT" -key-file "$KEY" nextpresskit.local localhost 127.0.0.1 ::1; then
+  green "Generating PEM for ${LOCAL_HOST}, localhost, 127.0.0.1, ::1 → $SSL_DIR" >&2
+  if "$MKCERT" -cert-file "$CERT" -key-file "$KEY" "$LOCAL_HOST" localhost 127.0.0.1 ::1; then
     green "mkcert files updated (browser hostname should match one of these names)." >&2
   else
     yellow "mkcert -cert-file failed; see https://github.com/FiloSottile/mkcert#installation" >&2
@@ -154,9 +162,10 @@ else
   yellow "Install manually: https://github.com/FiloSottile/mkcert#installation then re-run: ./scripts/nextpress setup" >&2
 fi
 
-if [[ -r /etc/hosts ]] && ! grep -qE '^[0-9.]+\s+nextpresskit\.local(\s|$)' /etc/hosts 2>/dev/null; then
-  yellow "Add this line to /etc/hosts if you use https://nextpresskit.local :" >&2
-  yellow "  127.0.0.1    nextpresskit.local" >&2
+_esc_host_dots() { printf '%s' "$1" | sed 's/\./\\./g'; }
+if [[ -r /etc/hosts ]] && ! grep -qE "^[0-9.]+\s+$(_esc_host_dots "$LOCAL_HOST")(\s|$)" /etc/hosts 2>/dev/null; then
+  yellow "Add this line to /etc/hosts if you use https://${LOCAL_HOST} :" >&2
+  yellow "  127.0.0.1    ${LOCAL_HOST}" >&2
 fi
 
 os="$(uname -s 2>/dev/null || echo unknown)"
@@ -164,7 +173,7 @@ if [[ "$os" == Linux ]] && command -v nginx >/dev/null 2>&1; then
   if [[ -f "$CERT" && -f "$KEY" ]]; then
     green "Installing Nginx site (HTTPS, default PEM paths)…" >&2
     if bash "$ROOT/scripts/deploy" apply-nginx --no-tls-menu; then
-      green "Nginx updated. Try: https://nextpresskit.local (and/or https://localhost)" >&2
+      green "Nginx updated. Try: https://${LOCAL_HOST} (and/or https://localhost)" >&2
     else
       yellow "Nginx step failed (fix: sudo nginx -t). Then: ./scripts/nextpress deploy-apply-nginx --no-tls-menu" >&2
     fi

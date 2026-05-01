@@ -51,7 +51,7 @@ Ready-made collections: [`postman/`](../postman) (see [`postman/README.md`](../p
 
 ## Config templates
 
-- `deploy/systemd/nextpress-backend@.service`
+- `deploy/systemd/nextpresskit-backend@.service`
 - `deploy/nginx/*.conf`
 - `deploy/nginx/production.ssl-snippet.conf.example` (optional manual TLS)
 - `scripts/deploy` (bash) / `scripts/deploy.ps1` — interactive wizard → `deploy/generated/` (see [DEPLOYMENT.md § Interactive deploy](DEPLOYMENT.md#interactive-deploy-scriptsdeploy))

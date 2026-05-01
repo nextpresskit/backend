@@ -20,7 +20,7 @@ func TestDeriveExcerpt_TrimsAndEllipsis(t *testing.T) {
 }
 
 func TestCountWordsAndChars(t *testing.T) {
-	wc, cc := countWordsAndChars("hello   world\nnextpress")
+	wc, cc := countWordsAndChars("hello   world\nnextpresskit")
 	if wc != 3 {
 		t.Fatalf("wordCount=%d, want 3", wc)
 	}

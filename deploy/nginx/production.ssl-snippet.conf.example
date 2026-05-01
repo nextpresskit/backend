@@ -21,11 +21,11 @@
 #     listen 443 ssl http2;
 #     server_name api.yourdomain.com;
 #
-#     ssl_certificate     /etc/ssl/nextpress/fullchain.pem;
-#     ssl_certificate_key /etc/ssl/nextpress/privkey.pem;
+#     ssl_certificate     /etc/ssl/nextpresskit/fullchain.pem;
+#     ssl_certificate_key /etc/ssl/nextpresskit/privkey.pem;
 #
 #     location /uploads/ {
-#         alias /var/www/nextpress-backend-production/storage/uploads/;
+#         alias /var/www/nextpresskit-backend-production/storage/uploads/;
 #         expires 30d;
 #         add_header Cache-Control "public, max-age=2592000";
 #     }

@@ -31,7 +31,7 @@ func NewPostsIndex(client *elasticsearch.Client, cfg config.ElasticsearchConfig,
 	}
 	prefix := strings.TrimSpace(cfg.IndexPrefix)
 	if prefix == "" {
-		prefix = "nextpress"
+		prefix = config.DefaultElasticsearchIndexPrefix
 	}
 	return &PostsIndex{
 		client: client,

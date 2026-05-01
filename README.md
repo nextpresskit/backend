@@ -45,9 +45,9 @@ make setup
 make run
 ```
 
-From an **interactive terminal**, `setup` also runs **`scripts/setup-local-https.sh`**: tries to **install mkcert** via apt, dnf, pacman, zypper, or Homebrew when missing, then uses **mkcert** to write `~/.local/share/nextpress-ssl/cert.pem` and `key.pem` for **nextpresskit.local**, **localhost**, **127.0.0.1**, and **::1** (avoids hostname/SAN mismatches), prints a **`/etc/hosts`** hint when needed, and on **Linux** with **nginx** runs **`deploy apply-nginx --no-tls-menu`**. Set **`SKIP_SETUP_LOCAL_HTTPS=1`** to skip this step (CI and headless installs).
+From an **interactive terminal**, `setup` also runs **`scripts/setup-local-https.sh`**: tries to **install mkcert** via apt, dnf, pacman, zypper, or Homebrew when missing, then uses **mkcert** to write `~/.local/share/nextpresskit-ssl/cert.pem` and `key.pem` for **nextpresskit.local**, **localhost**, **127.0.0.1**, and **::1** (avoids hostname/SAN mismatches), prints a **`/etc/hosts`** hint when needed, and on **Linux** with **nginx** runs **`deploy apply-nginx --no-tls-menu`**. Set **`SKIP_SETUP_LOCAL_HTTPS=1`** to skip this step (CI and headless installs).
 
-The API listens on **`APP_PORT`** (default **9090**). Foreground `run` frees the port first if a previous **same-repo** `bin/server` or `go run ./cmd/api` is still listening; **systemd** units named `nextpress-backend@*` are detected and not killed (stop them with `systemctl`).
+The API listens on **`APP_PORT`** (default **9090**). Foreground `run` frees the port first if a previous **same-repo** `bin/server` or `go run ./cmd/api` is still listening; **systemd** units named `nextpresskit-backend@*` are detected and not killed (stop them with `systemctl`).
 
 ### Windows (PowerShell)
 

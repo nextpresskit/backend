@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Free APP_PORT for local dev by stopping only this repo's API (go run ./cmd/api
-# or bin/server built here). Linux: systemd nextpress-backend@* is detected and
+# or bin/server built here). Linux: systemd APP_SERVICE_UNIT@* (default nextpresskit-backend@*) is detected and
 # not killed. macOS: uses lsof/ps (no /proc). Git Bash on Windows: best-effort;
 # use scripts/nextpress.ps1 run for native Windows.
 #
@@ -16,6 +16,8 @@ soft="${3:-}"
 workdir="$(cd "$workdir" && pwd -P 2>/dev/null || pwd)"
 binserver="$workdir/bin/server"
 kernel="$(uname -s 2>/dev/null || echo unknown)"
+service_unit="$(awk -F= '/^APP_SERVICE_UNIT=/{print $2; exit}' "$workdir/.env" 2>/dev/null | tr -d '[:space:]')"
+[[ -z "$service_unit" ]] && service_unit="nextpresskit-backend"
 
 fail_or_soft() {
   echo "$1" >&2
@@ -144,9 +146,13 @@ systemd_unit_for_pid() {
   return 1
 }
 
-is_nextpress_systemd_unit() {
+is_repo_systemd_unit() {
   local u="$1"
-  [[ "$u" == nextpress-backend@*.service ]] || [[ "$u" == */nextpress-backend@*.service ]]
+  case "$u" in
+    "${service_unit}"@*.service) return 0 ;;
+    */"${service_unit}"@*.service) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 pids="$(listener_pids || true)"
@@ -164,8 +170,8 @@ foreign=""
 for pid in $pids; do
   [[ -z "${pid// }" ]] && continue
   unit="$(systemd_unit_for_pid "$pid" || true)"
-  if [[ -n "$unit" ]] && is_nextpress_systemd_unit "$unit" && is_nextpress_dev_api "$pid"; then
-    echo "Port $port: NextPress API is managed by systemd ($unit), pid=$pid." >&2
+  if [[ -n "$unit" ]] && is_repo_systemd_unit "$unit" && is_nextpress_dev_api "$pid"; then
+    echo "Port $port: API is managed by systemd ($unit), pid=$pid." >&2
     echo "Killing it would only respawn the service. Run:" >&2
     echo "  sudo systemctl stop $unit" >&2
     if [[ "$soft" == "soft" ]]; then
@@ -196,7 +202,7 @@ if [[ -z "${our// }" ]]; then
 fi
 
 for pid in $our; do
-  echo "Stopping NextPress dev API on port $port (pid=$pid)..." >&2
+  echo "Stopping dev API on port $port (pid=$pid)..." >&2
   kill -TERM "$pid" 2>/dev/null || true
 done
 

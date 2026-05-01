@@ -59,6 +59,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	config.LoadEnv()
+
 	// Initialize structured logging as early as possible so we can rely on a
 	// consistent, production-ready logger for all subsequent operations.
 	baseLogger, err := platformLogger.New()
@@ -70,14 +72,11 @@ func main() {
 		_ = l.Sync()
 	}(baseLogger)
 
-	logger.Infow("starting nextpress-backend",
+	appCfg := config.LoadAppConfig()
+	logger.Infow("starting",
+		"service", appCfg.LogIdentifier,
 		"version", version,
 	)
-
-	// Load environment variables (from .env if present) and app configuration
-	// before touching any external resources (DB, message buses, etc.).
-	config.LoadEnv()
-	appCfg := config.LoadAppConfig()
 	dbCfg := config.LoadDBConfig()
 	jwtCfg := config.LoadJWTConfig()
 	rbacCfg := config.LoadRBACConfig()
@@ -457,5 +456,5 @@ UPDATE posts
 		log.Printf("graceful shutdown failed: %v\n", err)
 	}
 
-	logger.Info("nextpress-backend stopped cleanly")
+	logger.Infow("stopped cleanly", "service", appCfg.LogIdentifier)
 }

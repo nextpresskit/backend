@@ -8,8 +8,10 @@ BINARY_NAME   := server
 MIGRATE_BINARY := migrate
 SEED_BINARY   := seed
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-API_PID_FILE ?= .tmp/nextpress-api.pid
-API_LOG_FILE ?= .tmp/nextpress-api.log
+# Default matches APP_DEV_RUNTIME_BASENAME in .env (nextpresskit); override if you change only Makefile.
+DEV_RUNTIME_BASENAME ?= nextpresskit
+API_PID_FILE ?= .tmp/$(DEV_RUNTIME_BASENAME)-api.pid
+API_LOG_FILE ?= .tmp/$(DEV_RUNTIME_BASENAME)-api.log
 
 MIGRATE_CMD ?= up
 
@@ -58,7 +60,7 @@ build-all:
 run:
 	@bash scripts/dev-run.sh
 
-## start: Start the API in the background (logs: .tmp/nextpress-api.log)
+## start: Start the API in the background (logs under .tmp/ from DEV_RUNTIME_BASENAME)
 start:
 	@bash scripts/dev-start.sh
 

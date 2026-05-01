@@ -12,3 +12,24 @@ np_app_port() {
     echo "$p"
   fi
 }
+
+np_dev_runtime_basename() {
+  local root="${NP_ROOT:-.}" b
+  b="$(awk -F= '/^APP_DEV_RUNTIME_BASENAME=/{print $2; exit}' "$root/.env" 2>/dev/null | tr -d '[:space:]')"
+  [[ -z "$b" ]] && b="nextpresskit"
+  echo "$b"
+}
+
+np_app_service_unit() {
+  local root="${NP_ROOT:-.}" u
+  u="$(awk -F= '/^APP_SERVICE_UNIT=/{print $2; exit}' "$root/.env" 2>/dev/null | tr -d '[:space:]')"
+  [[ -z "$u" ]] && u="nextpresskit-backend"
+  echo "$u"
+}
+
+np_local_ssl_subdir() {
+  local root="${NP_ROOT:-.}" s
+  s="$(awk -F= '/^APP_LOCAL_SSL_SUBDIR=/{print $2; exit}' "$root/.env" 2>/dev/null | tr -d '[:space:]')"
+  [[ -z "$s" ]] && s="nextpresskit-ssl"
+  echo "$s"
+}
