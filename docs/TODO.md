@@ -1,6 +1,8 @@
 # TODO (full checklist)
 
-**`[x]`** = shipped · **`[ ]`** = still open. [`ROADMAP.md`](ROADMAP.md) · [`CONTRIBUTING.md`](../CONTRIBUTING.md) · [`openapi.yaml`](openapi.yaml)
+**`[x]`** = shipped · **`[ ]`** = still open. [Documentation index](README.md) · [`ROADMAP.md`](ROADMAP.md) · [`CONTRIBUTING.md`](../CONTRIBUTING.md) · [`openapi.yaml`](openapi.yaml)
+
+Use this as the source-of-truth checklist for work tracking.
 
 ---
 

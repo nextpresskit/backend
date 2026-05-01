@@ -1,6 +1,14 @@
 # Elasticsearch operations runbook
 
+[← Documentation index](README.md) · [Command reference](COMMANDS.md)
+
 Operational guidance for running NextPressKit search in production-like environments.
+
+## Quick start (local/dev)
+
+1. Set `ELASTICSEARCH_ENABLED=true` and `ELASTICSEARCH_URLS=...` in `.env`.
+2. Run the API (`make run` or `./scripts/nextpresskit run`).
+3. Use `GET /posts/search` and admin reindex `POST /admin/posts/search/reindex` when needed.
 
 Scope:
 - Index templates and mappings strategy

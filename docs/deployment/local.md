@@ -1,8 +1,26 @@
 # Local development
 
+[← Documentation index](../README.md) · [Server deployment (Ubuntu)](../DEPLOYMENT.md) · [Command reference](../COMMANDS.md)
+
 **Tutorial / how-to** - run the API on your machine. The default path is `go run` / `make run` with no reverse proxy. Optionally use **systemd** and **Nginx** on the same box to mirror how [server deployment](../DEPLOYMENT.md) runs the binary behind a proxy.
 
 Platform-specific setup: **[macOS](macos.md)** (Homebrew, paths) · **Ubuntu laptop** (below, [Ubuntu on servers](../DEPLOYMENT.md)). Interactive Nginx/TLS/setup: [§ Interactive deploy](../DEPLOYMENT.md#interactive-deploy-scriptsdeploy) (`make deploy` or `scripts/deploy.ps1` on Windows).
+
+## Fast local path (recommended)
+
+If you just want the API running quickly:
+
+```bash
+./scripts/nextpresskit setup   # install deps, prepare .env, migrate, seed
+./scripts/nextpresskit run     # run API in foreground
+```
+
+Make equivalents:
+
+```bash
+make setup
+make run
+```
 
 ## Already running the project?
 

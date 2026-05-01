@@ -1,6 +1,10 @@
 # Postman - NextPressKit API
 
+[Documentation index](../docs/README.md) · [Command reference](../docs/COMMANDS.md)
+
 Canonical collection and environment JSON lives in this **`postman-templates/`** folder (tracked in git). The **`postman/`** directory at the repo root is **gitignored**: run **`postman-sync`** to copy any missing files from here into `postman/`, then apply values from `.env.example` / `.env`.
+
+If you only need a quick path: run `./scripts/nextpresskit postman-sync`, then import files from `postman/`.
 
 ## Route groups (Public/Auth and Admin)
 

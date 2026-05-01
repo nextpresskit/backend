@@ -7,6 +7,23 @@ The goal of this project is to give developers a strong starting point they can 
 * Website: [nextpresskit.com](https://nextpresskit.com)
 * Frontend repository: [nextpresskit/web](https://github.com/nextpresskit/web)
 
+## Where to go next
+
+Use this table if you're not sure which doc to open first.
+
+| Goal | Start here |
+|------|------------|
+| Run the API locally in a few minutes | [Getting started](#getting-started) |
+| Understand what each command does | [docs/COMMANDS.md](docs/COMMANDS.md) |
+| See every doc and how it fits together | [docs/README.md](docs/README.md) |
+| Deploy to Ubuntu (nginx, systemd, HTTPS) | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| HTTPS + nginx on your laptop (mkcert) | [docs/deployment/local.md](docs/deployment/local.md) · [macOS](docs/deployment/macos.md) |
+| REST request/response shapes | [docs/openapi.yaml](docs/openapi.yaml) |
+| Try endpoints in Postman | [postman-templates/README.md](postman-templates/README.md) (`postman-sync`) |
+| JWT cookies, CORS, hardening | [docs/SECURITY.md](docs/SECURITY.md) |
+| Seed data and RBAC defaults | [docs/SEEDING.md](docs/SEEDING.md) |
+| Contribute or run checks before a PR | [CONTRIBUTING.md](CONTRIBUTING.md) |
+
 ## Project Concepts
 
 * **Starter-first architecture**: designed for rapid project bootstrapping and customization.
@@ -25,9 +42,15 @@ The goal of this project is to give developers a strong starting point they can 
 * gqlgen
 * Prometheus
 
-## Getting Started
+## Getting started
 
-You need **Go** (see `go.mod`) and **PostgreSQL** reachable with the credentials in `.env`.
+You need **Go** (see `go.mod`) and **PostgreSQL** reachable with the credentials in `.env`. Copy [`.env.example`](.env.example) to `.env` if you do not have one yet (`setup` can create it).
+
+Quick path:
+
+1. `./scripts/nextpresskit setup` (or `make setup`)
+2. `./scripts/nextpresskit run` (or `make run`)
+3. Open `http://localhost:9090/health` (or your `APP_PORT`)
 
 ### Linux / macOS / Git Bash (same commands)
 
@@ -58,7 +81,7 @@ From the repo root:
 .\scripts\nextpresskit.ps1 run
 ```
 
-Interactive Nginx snippet wizard: `make deploy-ps` or `.\scripts\nextpresskit.ps1 deploy`. Full Linux server flows remain in `make deploy` / `bash scripts/deploy`.
+Interactive Nginx snippet wizard: `make deploy-ps` or `.\scripts\nextpresskit.ps1 deploy`. Full Linux server flows are still in `make deploy` / `bash scripts/deploy`.
 
 ### HTTPS / Nginx locally
 
@@ -67,6 +90,8 @@ For **HTTPS** (cookie auth in the browser) and reverse-proxy setup, see [docs/de
 Background mode (Unix): `make start` / `make stop` or `./scripts/nextpresskit start` / `stop`.
 
 ## Commands (summary)
+
+Need command-by-command explanations? Open [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Area | Unix CLI | Make | Windows PowerShell |
 |------|----------|------|----------------------|
@@ -93,14 +118,17 @@ The NextPressKit backend is designed to work with the frontend web project:
 * API responsibilities include authentication, content APIs, and admin-related backend operations.
 * This project can also be used separately with a different frontend or mock/local API consumers.
 
-## API Contract
+## API contract
 
 This project includes an OpenAPI-first API contract and optional GraphQL support.
 
-* OpenAPI spec lives in [docs/openapi.yaml](https://github.com/nextpresskit/backend/blob/main/docs/openapi.yaml).
+* OpenAPI spec: [docs/openapi.yaml](docs/openapi.yaml).
 * REST endpoints cover auth, public content, and admin operations.
-* GraphQL is optional and can be enabled via environment configuration.
-* API base path is configurable using `API_BASE_PATH`.
+* API base path is configurable with `API_BASE_PATH` (see [.env.example](.env.example)).
+
+### GraphQL vs REST
+
+**REST** (OpenAPI) is the primary contract for writes and most product flows. **GraphQL** is optional and intended for read-focused use when you enable it in configuration. Regenerate GraphQL code after schema changes: `make graphql`. Details: [docs/README.md](docs/README.md).
 
 ### Authentication (JWT)
 
@@ -111,16 +139,6 @@ Cross-site browser apps must set **`CORS_ORIGINS`** to the real frontend origin 
 
 ## Documentation
 
-This project includes documentation for setup, architecture, and operations.
+The **single map of all docs** is [docs/README.md](docs/README.md). Skim that page whenever you feel lost.
 
-* Docs index: [docs/README.md](https://github.com/nextpresskit/backend/blob/main/docs/README.md)
-* API versioning: [docs/API_VERSIONING.md](https://github.com/nextpresskit/backend/blob/main/docs/API_VERSIONING.md)
-* Seeding guide: [docs/SEEDING.md](https://github.com/nextpresskit/backend/blob/main/docs/SEEDING.md)
-* Local deployment: [docs/deployment/local.md](https://github.com/nextpresskit/backend/blob/main/docs/deployment/local.md)
-* Full deployment guide: [docs/DEPLOYMENT.md](https://github.com/nextpresskit/backend/blob/main/docs/DEPLOYMENT.md)
-* Roadmap: [docs/ROADMAP.md](https://github.com/nextpresskit/backend/blob/main/docs/ROADMAP.md)
-* TODO checklist: [docs/TODO.md](https://github.com/nextpresskit/backend/blob/main/docs/TODO.md)
-
-## About
-
-NextPressKit backend starter for Go APIs.
+**Common links:** [API versioning](docs/API_VERSIONING.md) · [Seeding](docs/SEEDING.md) · [Elasticsearch runbook](docs/ELASTICSEARCH_OPERATIONS.md) · [Roadmap](docs/ROADMAP.md) · [Task checklist](docs/TODO.md) · [Changelog](CHANGELOG.md)

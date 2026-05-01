@@ -1,6 +1,17 @@
 # Local development on macOS
 
+[← Documentation index](../README.md) · [General local dev](local.md) · [Command reference](../COMMANDS.md)
+
 **How-to** for running **NextPressKit** on a Mac: toolchain install, typical paths, and pointers to **HTTPS** with mkcert. For stack behavior, migrations, Nginx layout, and cookie auth notes, see [Local development](local.md). For Linux servers, see [DEPLOYMENT.md](../DEPLOYMENT.md).
+
+## Fast path
+
+From the repo root, use:
+
+```bash
+make setup   # first run: modules + env bootstrap + migrate + seed
+make run     # run API
+```
 
 ## Prerequisites
 
@@ -79,7 +90,7 @@ If `nginx` is on your `PATH`, `nginx -t` is enough. Use the prefix that matches 
 
 ## systemd
 
-macOS does not use systemd. Use foreground **`make run`**, **`make start`** for background, or define a **LaunchAgent** if you need login-level autostart (out of scope here; mirror the working directory and `ExecStart` from [`deploy/systemd/nextpresskit-backend@.service`](../../deploy/systemd/nextpresskit-backend@.service) conceptually).
+macOS does not use systemd. Use **`make run`** in the foreground, **`make start`** for background mode, or define a **LaunchAgent** if you need login-level autostart (out of scope here; mirror the working directory and `ExecStart` from [`deploy/systemd/nextpresskit-backend@.service`](../../deploy/systemd/nextpresskit-backend@.service) conceptually).
 
 ## Server deployment
 

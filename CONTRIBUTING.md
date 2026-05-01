@@ -1,5 +1,9 @@
 # Contributing
 
+[Docs index](docs/README.md) · [Commands](docs/COMMANDS.md)
+
+This guide is the shortest path to preparing a clean PR.
+
 ## Prerequisites
 
 - Go version in [`go.mod`](go.mod)
@@ -21,7 +25,7 @@ Fix or explain any failures.
 
 ## Documentation (living docs)
 
-Keep narrative and tasks honest when behavior or priorities change - **prefer the same PR** as the code.
+Keep narrative and tasks honest when behavior or priorities change — **prefer the same PR** as the code.
 
 | When you… | Update… |
 |-----------|---------|
@@ -30,7 +34,7 @@ Keep narrative and tasks honest when behavior or priorities change - **prefer th
 | Add RBAC codes or seed data | [`docs/SEEDING.md`](docs/SEEDING.md) and `pkg/seed` |
 | Change deploy steps or branches | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
 
-See also: [docs/README.md](docs/README.md) - especially **How these docs connect**. Full checklist: [docs/TODO.md](docs/TODO.md).
+See also: [docs/README.md](docs/README.md) — **Pick your path** and the full doc table. Full checklist: [docs/TODO.md](docs/TODO.md).
 
 ## Branches and servers
 

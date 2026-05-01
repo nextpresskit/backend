@@ -1,6 +1,10 @@
 # Security and hardening
 
+[← Documentation index](README.md) · [`.env.example`](../.env.example) (JWT / CORS vars) · [Command reference](COMMANDS.md)
+
 Practical baseline guidance for secure operation of NextPressKit.
+
+For a local-first setup flow, start with [`deployment/local.md`](deployment/local.md), then return here to harden settings.
 
 ## Dependency and CVE review
 

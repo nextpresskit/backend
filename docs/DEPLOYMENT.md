@@ -1,6 +1,14 @@
 # Deployment
 
+[← Documentation index](README.md) · [Quick start (run locally)](../README.md#getting-started) · [Command reference](COMMANDS.md)
+
 How to run **NextPressKit** on **Ubuntu** behind **Nginx** and **systemd**, using **`scripts/deploy`**. For development on your own machine (foreground `make run` or optional local Nginx/systemd), see [Local development](deployment/local.md) and [macOS](deployment/macos.md).
+
+## Quick command meanings
+
+- `./scripts/deploy`: interactive wizard that asks questions and writes ready-to-install nginx/systemd snippets.
+- `make deploy`: convenience wrapper around the same deploy wizard.
+- `./scripts/nextpresskit deploy`: same deploy flow through the unified command runner.
 
 ## Already running the project?
 

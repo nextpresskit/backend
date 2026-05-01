@@ -15,6 +15,7 @@ Format:
 
 ### Changed
 - Documentation: root `README`, `docs/README`, `docs/SECURITY`, `docs/DEPLOYMENT`, `docs/deployment/local`, and `postman-templates/README` updated for HttpOnly JWT cookies and `JWT_AUTH_SOURCE`.
+- Documentation: added `docs/COMMANDS.md` and cross-links across docs for faster navigation and plain-language command explanations.
 
 ### Fixed
 - (fill in during development)

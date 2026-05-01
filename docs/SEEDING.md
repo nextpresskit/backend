@@ -1,10 +1,19 @@
 # Database seeding
 
+[← Documentation index](README.md) · [Command reference](COMMANDS.md)
+
 `make seed` runs the full seeding pipeline and is safe to run repeatedly.
+
+## Fast commands
+
+```bash
+make migrate-up   # apply schema
+make seed         # seed deterministic data
+```
 
 ## What `make seed` does
 
-1. Seeds RBAC defaults (`pkg/seed/rbac_defaults.go`) - baseline `admin` role and core permissions.
+1. Seeds RBAC defaults (`pkg/seed/rbac_defaults.go`) — baseline `admin` role and core permissions.
 2. Seeds a deterministic full dataset (`pkg/seed/full_dataset.go`) with **100 records per table** for local/dev use.
 3. Seeds a `superadmin` account and links it to both `superadmin` and `admin` roles.
 
