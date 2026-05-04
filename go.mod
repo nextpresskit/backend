@@ -1,6 +1,8 @@
-module github.com/Petar-V-Nikolov/nextpress-backend
+module github.com/nextpresskit/backend
 
 go 1.26
+
+toolchain go1.26.2
 
 require (
 	github.com/99designs/gqlgen v0.17.89
@@ -10,7 +12,6 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.11.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/vektah/gqlparser/v2 v2.5.32

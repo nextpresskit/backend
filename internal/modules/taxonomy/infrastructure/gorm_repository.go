@@ -2,9 +2,9 @@ package infrastructure
 
 import (
 	"context"
-	"time"
 
-	taxDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/domain"
+	taxDomain "github.com/nextpresskit/backend/internal/modules/taxonomy/domain"
+	taxp "github.com/nextpresskit/backend/internal/modules/taxonomy/persistence"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -17,28 +17,8 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{db: db}
 }
 
-type gormCategory struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
-	Name      string    `gorm:"column:name;not null"`
-	Slug      string    `gorm:"column:slug;not null;uniqueIndex"`
-	CreatedAt time.Time `gorm:"column:created_at;not null"`
-	UpdatedAt time.Time `gorm:"column:updated_at;not null"`
-}
-
-func (gormCategory) TableName() string { return "categories" }
-
-type gormTag struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
-	Name      string    `gorm:"column:name;not null"`
-	Slug      string    `gorm:"column:slug;not null;uniqueIndex"`
-	CreatedAt time.Time `gorm:"column:created_at;not null"`
-	UpdatedAt time.Time `gorm:"column:updated_at;not null"`
-}
-
-func (gormTag) TableName() string { return "tags" }
-
 func (r *GormRepository) CreateCategory(ctx context.Context, c *taxDomain.Category) error {
-	row := gormCategory{
+	row := taxp.Category{
 		ID:        string(c.ID),
 		Name:      c.Name,
 		Slug:      c.Slug,
@@ -49,7 +29,7 @@ func (r *GormRepository) CreateCategory(ctx context.Context, c *taxDomain.Catego
 }
 
 func (r *GormRepository) ListCategories(ctx context.Context, limit, offset int) ([]taxDomain.Category, error) {
-	var rows []gormCategory
+	var rows []taxp.Category
 	if err := r.db.WithContext(ctx).Order("name ASC").Limit(limit).Offset(offset).Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -67,7 +47,7 @@ func (r *GormRepository) ListCategories(ctx context.Context, limit, offset int) 
 }
 
 func (r *GormRepository) FindCategoryByID(ctx context.Context, id taxDomain.CategoryID) (*taxDomain.Category, error) {
-	var row gormCategory
+	var row taxp.Category
 	if err := r.db.WithContext(ctx).Where("id = ?", string(id)).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -84,7 +64,7 @@ func (r *GormRepository) FindCategoryByID(ctx context.Context, id taxDomain.Cate
 }
 
 func (r *GormRepository) UpdateCategory(ctx context.Context, c *taxDomain.Category) error {
-	row := gormCategory{
+	row := taxp.Category{
 		ID:        string(c.ID),
 		Name:      c.Name,
 		Slug:      c.Slug,
@@ -92,17 +72,17 @@ func (r *GormRepository) UpdateCategory(ctx context.Context, c *taxDomain.Catego
 		UpdatedAt: c.UpdatedAt,
 	}
 	return r.db.WithContext(ctx).
-		Model(&gormCategory{}).
+		Model(&taxp.Category{}).
 		Where("id = ?", row.ID).
 		Updates(&row).Error
 }
 
 func (r *GormRepository) DeleteCategory(ctx context.Context, id taxDomain.CategoryID) error {
-	return r.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&gormCategory{}).Error
+	return r.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&taxp.Category{}).Error
 }
 
 func (r *GormRepository) CreateTag(ctx context.Context, t *taxDomain.Tag) error {
-	row := gormTag{
+	row := taxp.Tag{
 		ID:        string(t.ID),
 		Name:      t.Name,
 		Slug:      t.Slug,
@@ -113,7 +93,7 @@ func (r *GormRepository) CreateTag(ctx context.Context, t *taxDomain.Tag) error 
 }
 
 func (r *GormRepository) ListTags(ctx context.Context, limit, offset int) ([]taxDomain.Tag, error) {
-	var rows []gormTag
+	var rows []taxp.Tag
 	if err := r.db.WithContext(ctx).Order("name ASC").Limit(limit).Offset(offset).Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -131,7 +111,7 @@ func (r *GormRepository) ListTags(ctx context.Context, limit, offset int) ([]tax
 }
 
 func (r *GormRepository) FindTagByID(ctx context.Context, id taxDomain.TagID) (*taxDomain.Tag, error) {
-	var row gormTag
+	var row taxp.Tag
 	if err := r.db.WithContext(ctx).Where("id = ?", string(id)).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -148,7 +128,7 @@ func (r *GormRepository) FindTagByID(ctx context.Context, id taxDomain.TagID) (*
 }
 
 func (r *GormRepository) UpdateTag(ctx context.Context, t *taxDomain.Tag) error {
-	row := gormTag{
+	row := taxp.Tag{
 		ID:        string(t.ID),
 		Name:      t.Name,
 		Slug:      t.Slug,
@@ -156,18 +136,18 @@ func (r *GormRepository) UpdateTag(ctx context.Context, t *taxDomain.Tag) error 
 		UpdatedAt: t.UpdatedAt,
 	}
 	return r.db.WithContext(ctx).
-		Model(&gormTag{}).
+		Model(&taxp.Tag{}).
 		Where("id = ?", row.ID).
 		Updates(&row).Error
 }
 
 func (r *GormRepository) DeleteTag(ctx context.Context, id taxDomain.TagID) error {
-	return r.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&gormTag{}).Error
+	return r.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&taxp.Tag{}).Error
 }
 
 // Optional: helpers to support idempotent seeding/upserts later.
 func (r *GormRepository) UpsertCategoryBySlug(ctx context.Context, c *taxDomain.Category) error {
-	row := gormCategory{ID: string(c.ID), Name: c.Name, Slug: c.Slug, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt}
+	row := taxp.Category{ID: string(c.ID), Name: c.Name, Slug: c.Slug, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt}
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "slug"}},
 		DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at"}),

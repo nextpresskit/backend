@@ -1,6 +1,12 @@
 # API Versioning Strategy
 
-This document records the current API versioning decision for NextPress and how to evolve it safely.
+[← Documentation index](README.md) · [OpenAPI contract](openapi.yaml)
+
+This document records the current API versioning decision for NextPressKit and how to evolve it safely.
+
+## One-line summary
+
+The API is unversioned by default, and you can switch to path versioning later by setting `API_BASE_PATH=/v1` without refactoring handlers.
 
 ## Current Decision
 

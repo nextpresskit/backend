@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	pageDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/domain"
+	pageDomain "github.com/nextpresskit/backend/internal/modules/pages/domain"
 )
 
 var (

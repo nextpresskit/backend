@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
 )
 
 // PostMetrics is read model / analytics snapshot for a post.

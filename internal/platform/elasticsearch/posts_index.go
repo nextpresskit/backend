@@ -12,9 +12,9 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"go.uber.org/zap"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
+	"github.com/nextpresskit/backend/internal/config"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/model"
 )
 
 // PostsIndex wraps Elasticsearch operations for the posts search index.
@@ -31,7 +31,7 @@ func NewPostsIndex(client *elasticsearch.Client, cfg config.ElasticsearchConfig,
 	}
 	prefix := strings.TrimSpace(cfg.IndexPrefix)
 	if prefix == "" {
-		prefix = "nextpress"
+		prefix = config.DefaultElasticsearchIndexPrefix
 	}
 	return &PostsIndex{
 		client: client,

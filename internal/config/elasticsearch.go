@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// DefaultElasticsearchIndexPrefix is used when ELASTICSEARCH_INDEX_PREFIX is unset or empty.
+const DefaultElasticsearchIndexPrefix = "nextpresskit"
+
 // ElasticsearchConfig toggles Elasticsearch client, indexing, and search.
 type ElasticsearchConfig struct {
 	Enabled bool
@@ -52,7 +55,7 @@ func LoadElasticsearchConfig(appEnv string) ElasticsearchConfig {
 		APIKey:             GetEnv("ELASTICSEARCH_API_KEY", ""),
 		Username:           GetEnv("ELASTICSEARCH_USERNAME", ""),
 		Password:           GetEnv("ELASTICSEARCH_PASSWORD", ""),
-		IndexPrefix:        GetEnv("ELASTICSEARCH_INDEX_PREFIX", "nextpress"),
+		IndexPrefix:        GetEnv("ELASTICSEARCH_INDEX_PREFIX", DefaultElasticsearchIndexPrefix),
 		InsecureSkipVerify: parseBool(GetEnv("ELASTICSEARCH_INSECURE_SKIP_VERIFY", "false")),
 		AutoCreateIndex:    autoCreateIndex,
 	}

@@ -4,9 +4,9 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"time"
 
-	rbacDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/domain"
+	rbacDomain "github.com/nextpresskit/backend/internal/modules/rbac/domain"
+	rbacp "github.com/nextpresskit/backend/internal/modules/rbac/persistence"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -19,40 +19,8 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{db: db}
 }
 
-type gormRole struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
-	Name      string    `gorm:"column:name"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
-}
-
-func (gormRole) TableName() string { return "roles" }
-
-type gormPermission struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
-	Code      string    `gorm:"column:code"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
-}
-
-func (gormPermission) TableName() string { return "permissions" }
-
-type gormUserRole struct {
-	UserID int64  `gorm:"column:user_id;primaryKey"`
-	RoleID string `gorm:"column:role_id;type:uuid;primaryKey"`
-}
-
-func (gormUserRole) TableName() string { return "user_roles" }
-
-type gormRolePermission struct {
-	RoleID       string `gorm:"column:role_id;type:uuid;primaryKey"`
-	PermissionID string `gorm:"column:permission_id;type:uuid;primaryKey"`
-}
-
-func (gormRolePermission) TableName() string { return "role_permissions" }
-
 func (r *GormRepository) CreateRole(ctx context.Context, role *rbacDomain.Role) error {
-	m := gormRole{
+	m := rbacp.Role{
 		ID:        role.ID,
 		Name:      role.Name,
 		CreatedAt: role.CreatedAt,
@@ -62,7 +30,7 @@ func (r *GormRepository) CreateRole(ctx context.Context, role *rbacDomain.Role) 
 }
 
 func (r *GormRepository) ListRoles(ctx context.Context) ([]rbacDomain.Role, error) {
-	var rows []gormRole
+	var rows []rbacp.Role
 	if err := r.db.WithContext(ctx).Order("name ASC").Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -80,7 +48,7 @@ func (r *GormRepository) ListRoles(ctx context.Context) ([]rbacDomain.Role, erro
 }
 
 func (r *GormRepository) CreatePermission(ctx context.Context, perm *rbacDomain.Permission) error {
-	m := gormPermission{
+	m := rbacp.Permission{
 		ID:        perm.ID,
 		Code:      perm.Code,
 		CreatedAt: perm.CreatedAt,
@@ -90,7 +58,7 @@ func (r *GormRepository) CreatePermission(ctx context.Context, perm *rbacDomain.
 }
 
 func (r *GormRepository) ListPermissions(ctx context.Context) ([]rbacDomain.Permission, error) {
-	var rows []gormPermission
+	var rows []rbacp.Permission
 	if err := r.db.WithContext(ctx).Order("code ASC").Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -112,7 +80,7 @@ func (r *GormRepository) AssignRoleToUser(ctx context.Context, userID string, ro
 	if err != nil {
 		return err
 	}
-	m := gormUserRole{UserID: uid, RoleID: roleID}
+	m := rbacp.UserRole{UserID: uid, RoleID: roleID}
 	return r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{DoNothing: true}).
 		Create(&m).
@@ -120,7 +88,7 @@ func (r *GormRepository) AssignRoleToUser(ctx context.Context, userID string, ro
 }
 
 func (r *GormRepository) GrantPermissionToRole(ctx context.Context, roleID string, permissionID string) error {
-	m := gormRolePermission{RoleID: roleID, PermissionID: permissionID}
+	m := rbacp.RolePermission{RoleID: roleID, PermissionID: permissionID}
 	return r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{DoNothing: true}).
 		Create(&m).

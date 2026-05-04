@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
+	platformMiddleware "github.com/nextpresskit/backend/internal/platform/middleware"
 )
 
 type ReadinessCheck struct {
@@ -25,14 +25,14 @@ type ReadinessCheck struct {
 var (
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "nextpress_http_requests_total",
-			Help: "Total HTTP requests handled by NextPress.",
+			Name: "nextpresskit_http_requests_total",
+			Help: "Total HTTP requests handled by the API.",
 		},
 		[]string{"method", "route", "status"},
 	)
 	httpRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "nextpress_http_request_duration_seconds",
+			Name:    "nextpresskit_http_request_duration_seconds",
 			Help:    "HTTP request duration in seconds.",
 			Buckets: prometheus.DefBuckets,
 		},
@@ -119,7 +119,7 @@ func ConfigureEngine(engine *gin.Engine, log *zap.SugaredLogger, db *gorm.DB, ap
 	// backend explicitly (useful in multi-service environments).
 	engine.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"service": "nextpress-backend",
+			"service": "nextpresskit-backend",
 			"version": appVersion,
 		})
 	})

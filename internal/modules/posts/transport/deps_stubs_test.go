@@ -3,9 +3,9 @@ package transport
 import (
 	"context"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/series"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/series"
 )
 
 // stubPostsSubresources is a test double for PostsSubresources (all no-ops / empty).

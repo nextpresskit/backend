@@ -4,26 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
+	"github.com/nextpresskit/backend/internal/modules/user/domain"
+	userp "github.com/nextpresskit/backend/internal/modules/user/persistence"
 	"gorm.io/gorm"
 )
-
-type gormUser struct {
-	PublicID  int64          `gorm:"column:public_id;autoIncrement;uniqueIndex;not null"`
-	UUID      string         `gorm:"column:id;type:uuid;primaryKey"`
-	FirstName string         `gorm:"not null"`
-	LastName  string         `gorm:"not null"`
-	Email     string         `gorm:"not null;uniqueIndex"`
-	Password  string         `gorm:"not null"`
-	Active    bool           `gorm:"not null;default:true"`
-	CreatedAt time.Time      `gorm:"not null;autoCreateTime"`
-	UpdatedAt time.Time      `gorm:"not null;autoUpdateTime"`
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-}
-
-func (gormUser) TableName() string {
-	return "users"
-}
 
 type GormRepository struct {
 	db *gorm.DB
@@ -34,7 +18,7 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 }
 
 func (r *GormRepository) FindByID(id domain.UserID) (*domain.User, error) {
-	var u gormUser
+	var u userp.User
 	if err := r.db.WithContext(context.Background()).
 		Where("public_id = ?", int64(id)).
 		First(&u).Error; err != nil {
@@ -47,7 +31,7 @@ func (r *GormRepository) FindByID(id domain.UserID) (*domain.User, error) {
 }
 
 func (r *GormRepository) FindByUUID(uuid string) (*domain.User, error) {
-	var u gormUser
+	var u userp.User
 	if err := r.db.WithContext(context.Background()).
 		Where("id = ?", uuid).
 		First(&u).Error; err != nil {
@@ -60,7 +44,7 @@ func (r *GormRepository) FindByUUID(uuid string) (*domain.User, error) {
 }
 
 func (r *GormRepository) FindByEmail(email string) (*domain.User, error) {
-	var u gormUser
+	var u userp.User
 	if err := r.db.WithContext(context.Background()).
 		Where("LOWER(email) = LOWER(?)", email).
 		First(&u).Error; err != nil {
@@ -84,7 +68,7 @@ func (r *GormRepository) Create(user *domain.User) error {
 func (r *GormRepository) Update(user *domain.User) error {
 	u := fromDomain(user)
 	return r.db.WithContext(context.Background()).
-		Model(&gormUser{}).
+		Model(&userp.User{}).
 		Where("id = ?", u.UUID).
 		Updates(&u).Error
 }
@@ -92,10 +76,10 @@ func (r *GormRepository) Update(user *domain.User) error {
 func (r *GormRepository) Delete(id domain.UserID) error {
 	return r.db.WithContext(context.Background()).
 		Where("public_id = ?", int64(id)).
-		Delete(&gormUser{}).Error
+		Delete(&userp.User{}).Error
 }
 
-func toDomain(u *gormUser) *domain.User {
+func toDomain(u *userp.User) *domain.User {
 	var deletedAt *time.Time
 	if u.DeletedAt.Valid {
 		t := u.DeletedAt.Time
@@ -115,12 +99,12 @@ func toDomain(u *gormUser) *domain.User {
 	}
 }
 
-func fromDomain(u *domain.User) *gormUser {
+func fromDomain(u *domain.User) *userp.User {
 	var deleted gorm.DeletedAt
 	if u.DeletedAt != nil {
 		deleted = gorm.DeletedAt{Time: *u.DeletedAt, Valid: true}
 	}
-	return &gormUser{
+	return &userp.User{
 		PublicID:  u.ID,
 		UUID:      u.UUID,
 		FirstName: u.FirstName,

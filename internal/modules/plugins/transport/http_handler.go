@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	pluginsApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/application"
-	pluginsDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/domain"
+	pluginsApp "github.com/nextpresskit/backend/internal/modules/plugins/application"
+	pluginsDomain "github.com/nextpresskit/backend/internal/modules/plugins/domain"
 )
 
 type Handler struct {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	userDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
+	userDomain "github.com/nextpresskit/backend/internal/modules/user/domain"
 )
 
 type userRepoStub struct {

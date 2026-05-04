@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
-	mediaApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/application"
+	mediaApp "github.com/nextpresskit/backend/internal/modules/media/application"
 )
 
 type LocalStorage struct {

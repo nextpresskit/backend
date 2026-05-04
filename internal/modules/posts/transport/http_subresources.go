@@ -5,10 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/series"
-	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/series"
+	platformMiddleware "github.com/nextpresskit/backend/internal/platform/middleware"
 )
 
 func (h *Handler) registerPostSubresourceRoutes(posts *gin.RouterGroup, auth gin.HandlerFunc, requirePerm func(string) gin.HandlerFunc) {

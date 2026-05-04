@@ -1,6 +1,7 @@
 package seed
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -8,6 +9,15 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	mediap "github.com/nextpresskit/backend/internal/modules/media/persistence"
+	pagep "github.com/nextpresskit/backend/internal/modules/pages/persistence"
+	pluginp "github.com/nextpresskit/backend/internal/modules/plugins/persistence"
+	postp "github.com/nextpresskit/backend/internal/modules/posts/persistence"
+	rbacp "github.com/nextpresskit/backend/internal/modules/rbac/persistence"
+	taxp "github.com/nextpresskit/backend/internal/modules/taxonomy/persistence"
+	userp "github.com/nextpresskit/backend/internal/modules/user/persistence"
 )
 
 const (
@@ -22,7 +32,7 @@ const (
 // SeedFullDataset inserts deterministic demo records across all tables.
 // It also ensures a superadmin user exists and is linked to admin/superadmin roles.
 func SeedFullDataset(db *gorm.DB) error {
-	superadminEmail := envOrDefault("SEED_SUPERADMIN_EMAIL", "superadmin@nextpress.local")
+	superadminEmail := envOrDefault("SEED_SUPERADMIN_EMAIL", "superadmin@nextpresskit.local")
 	superadminPassword := envOrDefault("SEED_SUPERADMIN_PASSWORD", "SuperAdmin123!")
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(superadminPassword), bcrypt.DefaultCost)
@@ -109,26 +119,33 @@ func seedUsers(tx *gorm.DB, superadminEmail, passwordHash string) error {
 		id := seedUUID(0x0100, i)
 		firstName := fmt.Sprintf("User%03d", i)
 		lastName := "Seed"
-		email := fmt.Sprintf("user%03d@nextpress.local", i)
+		email := fmt.Sprintf("user%03d@nextpresskit.local", i)
 		if i == 1 {
 			id = superadminUserID
 			firstName = "Super"
 			lastName = "Admin"
 			email = superadminEmail
 		}
-
-		if err := tx.Exec(
-			`INSERT INTO users (id, first_name, last_name, email, password, active, deleted_at)
-			 VALUES (?, ?, ?, ?, ?, TRUE, NULL)
-			 ON CONFLICT (email) DO UPDATE
-			 SET first_name = EXCLUDED.first_name,
-			     last_name = EXCLUDED.last_name,
-			     password = EXCLUDED.password,
-			     active = EXCLUDED.active,
-			     deleted_at = NULL,
-			     updated_at = NOW()`,
-			id, firstName, lastName, email, passwordHash,
-		).Error; err != nil {
+		u := userp.User{
+			UUID:      id,
+			FirstName: firstName,
+			LastName:  lastName,
+			Email:     email,
+			Password:  passwordHash,
+			Active:    true,
+		}
+		now := time.Now().UTC()
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "email"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"first_name": firstName,
+				"last_name":  lastName,
+				"password":   passwordHash,
+				"active":     true,
+				"deleted_at": nil,
+				"updated_at": now,
+			}),
+		}).Omit("public_id").Create(&u).Error; err != nil {
 			return fmt.Errorf("users row %d: %w", i, err)
 		}
 	}
@@ -139,7 +156,6 @@ func seedRoles(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
 		id := seedUUID(0x0200, i)
 		name := fmt.Sprintf("role-%03d", i)
-
 		if i == 1 {
 			id = RoleAdminID
 			name = "admin"
@@ -147,14 +163,13 @@ func seedRoles(tx *gorm.DB) error {
 			id = superadminRoleID
 			name = superadminRoleName
 		}
-
-		if err := tx.Exec(
-			`INSERT INTO roles (id, name)
-			 VALUES (?, ?)
-			 ON CONFLICT (name) DO UPDATE
-			 SET updated_at = NOW()`,
-			id, name,
-		).Error; err != nil {
+		r := rbacp.Role{ID: id, Name: name}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "name"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"updated_at": time.Now().UTC(),
+			}),
+		}).Create(&r).Error; err != nil {
 			return fmt.Errorf("roles row %d: %w", i, err)
 		}
 	}
@@ -163,13 +178,16 @@ func seedRoles(tx *gorm.DB) error {
 
 func seedPermissions(tx *gorm.DB) error {
 	for i := 1; i <= seedRows-seedDefaultPermissions; i++ {
-		if err := tx.Exec(
-			`INSERT INTO permissions (id, code)
-			 VALUES (?, ?)
-			 ON CONFLICT (code) DO UPDATE
-			 SET updated_at = NOW()`,
-			seedUUID(0x0300, i), fmt.Sprintf("seed:permission:%03d", i),
-		).Error; err != nil {
+		p := rbacp.Permission{
+			ID:   seedUUID(0x0300, i),
+			Code: fmt.Sprintf("seed:permission:%03d", i),
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "code"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"updated_at": time.Now().UTC(),
+			}),
+		}).Create(&p).Error; err != nil {
 			return fmt.Errorf("permissions row %d: %w", i, err)
 		}
 	}
@@ -177,31 +195,25 @@ func seedPermissions(tx *gorm.DB) error {
 }
 
 func seedUserRoles(tx *gorm.DB) error {
-	if err := tx.Exec(
-		`INSERT INTO user_roles (user_id, role_id)
-		 SELECT (SELECT public_id FROM users WHERE id = ?), id FROM roles WHERE name = ?
-		 ON CONFLICT DO NOTHING`,
-		superadminUserID, superadminRoleName,
-	).Error; err != nil {
+	superPub := userPublicIDFromUUID(tx, superadminUserID)
+	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rbacp.UserRole{
+		UserID: superPub,
+		RoleID: superadminRoleID,
+	}).Error; err != nil {
 		return fmt.Errorf("user_roles superadmin link: %w", err)
 	}
-
-	if err := tx.Exec(
-		`INSERT INTO user_roles (user_id, role_id)
-		 VALUES ((SELECT public_id FROM users WHERE id = ?), ?)
-		 ON CONFLICT DO NOTHING`,
-		superadminUserID, RoleAdminID,
-	).Error; err != nil {
+	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rbacp.UserRole{
+		UserID: superPub,
+		RoleID: RoleAdminID,
+	}).Error; err != nil {
 		return fmt.Errorf("user_roles admin link: %w", err)
 	}
-
 	for i := 2; i <= 99; i++ {
-		if err := tx.Exec(
-			`INSERT INTO user_roles (user_id, role_id)
-			 SELECT (SELECT public_id FROM users WHERE id = ?), id FROM roles WHERE name = ?
-			 ON CONFLICT DO NOTHING`,
-			seedUUID(0x0100, i), fmt.Sprintf("role-%03d", i+1),
-		).Error; err != nil {
+		ur := rbacp.UserRole{
+			UserID: userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
+			RoleID: seedUUID(0x0200, i+1),
+		}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&ur).Error; err != nil {
 			return fmt.Errorf("user_roles row %d: %w", i, err)
 		}
 	}
@@ -224,32 +236,35 @@ func seedRolePermissions(tx *gorm.DB) error {
 		"media:write",
 		"plugins:manage",
 	}
-
 	for _, code := range defaultCodes {
-		if err := tx.Exec(
-			`INSERT INTO role_permissions (role_id, permission_id)
-			 SELECT r.id, p.id
-			 FROM roles r
-			 JOIN permissions p ON p.code = ?
-			 WHERE r.name = 'admin'
-			 ON CONFLICT DO NOTHING`,
-			code,
-		).Error; err != nil {
+		var permID string
+		if err := tx.Model(&rbacp.Permission{}).Select("id").Where("code = ?", code).Scan(&permID).Error; err != nil {
+			return err
+		}
+		if permID == "" {
+			continue
+		}
+		rp := rbacp.RolePermission{RoleID: RoleAdminID, PermissionID: permID}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rp).Error; err != nil {
 			return fmt.Errorf("role_permissions default %s: %w", code, err)
 		}
 	}
-
 	for i := 1; i <= seedRows-seedDefaultPermissions; i++ {
-		if err := tx.Exec(
-			`INSERT INTO role_permissions (role_id, permission_id)
-			 SELECT r.id, p.id
-			 FROM roles r
-			 JOIN permissions p ON p.code = ?
-			 WHERE r.name = ?
-			 ON CONFLICT DO NOTHING`,
-			fmt.Sprintf("seed:permission:%03d", i),
-			fmt.Sprintf("role-%03d", i+seedDefaultPermissions),
-		).Error; err != nil {
+		var permID, roleID string
+		code := fmt.Sprintf("seed:permission:%03d", i)
+		roleName := fmt.Sprintf("role-%03d", i+seedDefaultPermissions)
+		if err := tx.Model(&rbacp.Permission{}).Select("id").Where("code = ?", code).Scan(&permID).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&rbacp.Role{}).Select("id").Where("name = ?", roleName).Scan(&roleID).Error; err != nil {
+			return err
+		}
+		if permID == "" || roleID == "" {
+			continue
+		}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rbacp.RolePermission{
+			RoleID: roleID, PermissionID: permID,
+		}).Error; err != nil {
 			return fmt.Errorf("role_permissions row %d: %w", i, err)
 		}
 	}
@@ -258,13 +273,18 @@ func seedRolePermissions(tx *gorm.DB) error {
 
 func seedCategories(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO categories (id, name, slug)
-			 VALUES (?, ?, ?)
-			 ON CONFLICT (slug) DO UPDATE
-			 SET name = EXCLUDED.name, updated_at = NOW()`,
-			seedUUID(0x0400, i), fmt.Sprintf("Category %03d", i), fmt.Sprintf("category-%03d", i),
-		).Error; err != nil {
+		c := taxp.Category{
+			ID:   seedUUID(0x0400, i),
+			Name: fmt.Sprintf("Category %03d", i),
+			Slug: fmt.Sprintf("category-%03d", i),
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "slug"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"name":       c.Name,
+				"updated_at": time.Now().UTC(),
+			}),
+		}).Create(&c).Error; err != nil {
 			return fmt.Errorf("categories row %d: %w", i, err)
 		}
 	}
@@ -273,13 +293,18 @@ func seedCategories(tx *gorm.DB) error {
 
 func seedTags(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO tags (id, name, slug)
-			 VALUES (?, ?, ?)
-			 ON CONFLICT (slug) DO UPDATE
-			 SET name = EXCLUDED.name, updated_at = NOW()`,
-			seedUUID(0x0500, i), fmt.Sprintf("Tag %03d", i), fmt.Sprintf("tag-%03d", i),
-		).Error; err != nil {
+		t := taxp.Tag{
+			ID:   seedUUID(0x0500, i),
+			Name: fmt.Sprintf("Tag %03d", i),
+			Slug: fmt.Sprintf("tag-%03d", i),
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "slug"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"name":       t.Name,
+				"updated_at": time.Now().UTC(),
+			}),
+		}).Create(&t).Error; err != nil {
 			return fmt.Errorf("tags row %d: %w", i, err)
 		}
 	}
@@ -288,25 +313,27 @@ func seedTags(tx *gorm.DB) error {
 
 func seedMedia(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO media (id, uploader_id, original_name, storage_name, mime_type, size_bytes, storage_path, public_url)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-			 ON CONFLICT (storage_name) DO UPDATE
-			 SET uploader_id = EXCLUDED.uploader_id,
-			     original_name = EXCLUDED.original_name,
-			     mime_type = EXCLUDED.mime_type,
-			     size_bytes = EXCLUDED.size_bytes,
-			     storage_path = EXCLUDED.storage_path,
-			     public_url = EXCLUDED.public_url`,
-			seedUUID(0x0600, i),
-			userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
-			fmt.Sprintf("image-%03d.jpg", i),
-			fmt.Sprintf("seed-image-%03d.jpg", i),
-			"image/jpeg",
-			int64(1024+i),
-			fmt.Sprintf("uploads/seed-image-%03d.jpg", i),
-			fmt.Sprintf("/uploads/seed-image-%03d.jpg", i),
-		).Error; err != nil {
+		m := mediap.Media{
+			ID:           seedUUID(0x0600, i),
+			UploaderID:   userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
+			OriginalName: fmt.Sprintf("image-%03d.jpg", i),
+			StorageName:  fmt.Sprintf("seed-image-%03d.jpg", i),
+			MimeType:     "image/jpeg",
+			SizeBytes:    int64(1024 + i),
+			StoragePath:  fmt.Sprintf("uploads/seed-image-%03d.jpg", i),
+			PublicURL:    fmt.Sprintf("/uploads/seed-image-%03d.jpg", i),
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "storage_name"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"uploader_id":   m.UploaderID,
+				"original_name": m.OriginalName,
+				"mime_type":     m.MimeType,
+				"size_bytes":    m.SizeBytes,
+				"storage_path":  m.StoragePath,
+				"public_url":    m.PublicURL,
+			}),
+		}).Create(&m).Error; err != nil {
 			return fmt.Errorf("media row %d: %w", i, err)
 		}
 	}
@@ -317,93 +344,70 @@ func seedPosts(tx *gorm.DB) error {
 	now := time.Now().UTC()
 	for i := 1; i <= seedRows; i++ {
 		status := "draft"
-		var publishedAt any
+		var publishedAt *time.Time
 		if i%3 == 0 {
 			status = "published"
-			publishedAt = now.Add(-time.Duration(i) * time.Hour)
+			t := now.Add(-time.Duration(i) * time.Hour)
+			publishedAt = &t
 		}
-
 		postID := seedUUID(0x0700, i)
-		if err := tx.Exec(
-			`INSERT INTO posts (
-			    id, author_id, title, slug, content, status, published_at,
-			    uuid, post_type, format, subtitle, excerpt, visibility, locale, timezone,
-			    scheduled_publish_at, first_indexed_at, reviewer_user_id, last_edited_by_user_id,
-			    workflow_stage, revision, custom_fields, flags, engagement, workflow,
-			    featured_media_id, featured_alt, featured_width, featured_height, featured_focal_x, featured_focal_y,
-			    featured_credit, featured_license, primary_category_id, deleted_at
-			 )
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
-			 ON CONFLICT (slug) DO UPDATE
-			 SET author_id = EXCLUDED.author_id,
-			     title = EXCLUDED.title,
-			     content = EXCLUDED.content,
-			     status = EXCLUDED.status,
-			     published_at = EXCLUDED.published_at,
-			     uuid = EXCLUDED.uuid,
-			     post_type = EXCLUDED.post_type,
-			     format = EXCLUDED.format,
-			     subtitle = EXCLUDED.subtitle,
-			     excerpt = EXCLUDED.excerpt,
-			     visibility = EXCLUDED.visibility,
-			     locale = EXCLUDED.locale,
-			     timezone = EXCLUDED.timezone,
-			     scheduled_publish_at = EXCLUDED.scheduled_publish_at,
-			     first_indexed_at = EXCLUDED.first_indexed_at,
-			     reviewer_user_id = EXCLUDED.reviewer_user_id,
-			     last_edited_by_user_id = EXCLUDED.last_edited_by_user_id,
-			     workflow_stage = EXCLUDED.workflow_stage,
-			     revision = EXCLUDED.revision,
-			     custom_fields = EXCLUDED.custom_fields,
-			     flags = EXCLUDED.flags,
-			     engagement = EXCLUDED.engagement,
-			     workflow = EXCLUDED.workflow,
-			     featured_media_id = EXCLUDED.featured_media_id,
-			     featured_alt = EXCLUDED.featured_alt,
-			     featured_width = EXCLUDED.featured_width,
-			     featured_height = EXCLUDED.featured_height,
-			     featured_focal_x = EXCLUDED.featured_focal_x,
-			     featured_focal_y = EXCLUDED.featured_focal_y,
-			     featured_credit = EXCLUDED.featured_credit,
-			     featured_license = EXCLUDED.featured_license,
-			     primary_category_id = EXCLUDED.primary_category_id,
-			     deleted_at = NULL,
-			     updated_at = NOW()`,
-			postID,
-			userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
-			fmt.Sprintf("Seed Post %03d", i),
-			fmt.Sprintf("seed-post-%03d", i),
-			fmt.Sprintf("Seeded content body for post %03d.", i),
-			status,
-			publishedAt,
-			postID,
-			"article",
-			"standard",
-			fmt.Sprintf("Subtitle for post %03d", i),
-			fmt.Sprintf("Short excerpt for post %03d", i),
-			"public",
-			"en-US",
-			"UTC",
-			now.Add(time.Duration(i)*time.Hour),
-			now,
-			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i)%seedRows)+1)),
-			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i+1)%seedRows)+1)),
-			"draft",
-			1,
-			fmt.Sprintf(`{"seed_index": %d}`, i),
-			`{"featured": false}`,
-			fmt.Sprintf(`{"score": %d}`, i),
-			fmt.Sprintf(`{"state": "draft-%03d"}`, i),
-			seedUUID(0x0600, i),
-			fmt.Sprintf("Featured alt %03d", i),
-			1920,
-			1080,
-			0.5,
-			0.5,
-			"Seed Generator",
-			"CC-BY",
-			seedUUID(0x0400, i),
-		).Error; err != nil {
+		pid := postID
+		focalX := float32(0.5)
+		focalY := float32(0.5)
+		w, h := 1920, 1080
+		alt := fmt.Sprintf("Featured alt %03d", i)
+		credit := "Seed Generator"
+		license := "CC-BY"
+		catID := seedUUID(0x0400, i)
+		mediaID := seedUUID(0x0600, i)
+		p := postp.Post{
+			ID:                 postID,
+			UUID:               &pid,
+			AuthorID:           userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
+			Title:              fmt.Sprintf("Seed Post %03d", i),
+			Slug:               fmt.Sprintf("seed-post-%03d", i),
+			Content:            fmt.Sprintf("Seeded content body for post %03d.", i),
+			Status:             status,
+			PublishedAt:        publishedAt,
+			PostType:           "article",
+			Format:             "standard",
+			Subtitle:           fmt.Sprintf("Subtitle for post %03d", i),
+			Excerpt:            fmt.Sprintf("Short excerpt for post %03d", i),
+			Visibility:         "public",
+			Locale:             "en-US",
+			Timezone:           "UTC",
+			ScheduledPublishAt: ptrTime(now.Add(time.Duration(i) * time.Hour)),
+			FirstIndexedAt:     &now,
+			ReviewerUserID:     int64Ptr(userPublicIDFromUUID(tx, seedUUID(0x0100, ((i)%seedRows)+1))),
+			LastEditedByUserID: int64Ptr(userPublicIDFromUUID(tx, seedUUID(0x0100, ((i+1)%seedRows)+1))),
+			WorkflowStage:      "draft",
+			Revision:           1,
+			CustomFields:       jf(`{"seed_index": %d}`, i),
+			Flags:              j(`{"featured": false}`),
+			Engagement:         jf(`{"score": %d}`, i),
+			Workflow:           jf(`{"state": "draft-%03d"}`, i),
+			FeaturedMediaID:    &mediaID,
+			FeaturedAlt:        &alt,
+			FeaturedWidth:      &w,
+			FeaturedHeight:     &h,
+			FeaturedFocalX:     &focalX,
+			FeaturedFocalY:     &focalY,
+			FeaturedCredit:     &credit,
+			FeaturedLicense:    &license,
+			PrimaryCategoryID:  &catID,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "slug"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"author_id", "title", "content", "status", "published_at", "uuid", "post_type", "format",
+				"subtitle", "excerpt", "visibility", "locale", "timezone", "scheduled_publish_at", "first_indexed_at",
+				"reviewer_user_id", "last_edited_by_user_id", "workflow_stage", "revision",
+				"custom_fields", "flags", "engagement", "workflow",
+				"featured_media_id", "featured_alt", "featured_width", "featured_height",
+				"featured_focal_x", "featured_focal_y", "featured_credit", "featured_license",
+				"primary_category_id", "deleted_at", "updated_at",
+			}),
+		}).Create(&p).Error; err != nil {
 			return fmt.Errorf("posts row %d: %w", i, err)
 		}
 	}
@@ -414,31 +418,34 @@ func seedPages(tx *gorm.DB) error {
 	now := time.Now().UTC()
 	for i := 1; i <= seedRows; i++ {
 		status := "published"
-		var publishedAt any = now.Add(-time.Duration(i) * time.Minute)
+		var publishedAt *time.Time
 		if i%4 == 0 {
 			status = "draft"
-			publishedAt = nil
+		} else {
+			t := now.Add(-time.Duration(i) * time.Minute)
+			publishedAt = &t
 		}
-
-		if err := tx.Exec(
-			`INSERT INTO pages (id, author_id, title, slug, content, status, published_at, deleted_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
-			 ON CONFLICT (slug) DO UPDATE
-			 SET author_id = EXCLUDED.author_id,
-			     title = EXCLUDED.title,
-			     content = EXCLUDED.content,
-			     status = EXCLUDED.status,
-			     published_at = EXCLUDED.published_at,
-			     deleted_at = NULL,
-			     updated_at = NOW()`,
-			seedUUID(0x0800, i),
-			userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
-			fmt.Sprintf("Seed Page %03d", i),
-			fmt.Sprintf("seed-page-%03d", i),
-			fmt.Sprintf("Seeded content body for page %03d.", i),
-			status,
-			publishedAt,
-		).Error; err != nil {
+		pg := pagep.Page{
+			ID:          seedUUID(0x0800, i),
+			AuthorID:    userPublicIDFromUUID(tx, seedUUID(0x0100, i)),
+			Title:       fmt.Sprintf("Seed Page %03d", i),
+			Slug:        fmt.Sprintf("seed-page-%03d", i),
+			Content:     fmt.Sprintf("Seeded content body for page %03d.", i),
+			Status:      status,
+			PublishedAt: publishedAt,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "slug"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"author_id":    pg.AuthorID,
+				"title":        pg.Title,
+				"content":      pg.Content,
+				"status":       pg.Status,
+				"published_at": pg.PublishedAt,
+				"deleted_at":   nil,
+				"updated_at":   time.Now().UTC(),
+			}),
+		}).Create(&pg).Error; err != nil {
 			return fmt.Errorf("pages row %d: %w", i, err)
 		}
 	}
@@ -447,22 +454,25 @@ func seedPages(tx *gorm.DB) error {
 
 func seedPlugins(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO plugins (id, name, slug, enabled, version, config)
-			 VALUES (?, ?, ?, ?, ?, ?::jsonb)
-			 ON CONFLICT (slug) DO UPDATE
-			 SET name = EXCLUDED.name,
-			     enabled = EXCLUDED.enabled,
-			     version = EXCLUDED.version,
-			     config = EXCLUDED.config,
-			     updated_at = NOW()`,
-			seedUUID(0x0b00, i),
-			fmt.Sprintf("Seed Plugin %03d", i),
-			fmt.Sprintf("seed-plugin-%03d", i),
-			i%2 == 0,
-			"1.0.0",
-			fmt.Sprintf(`{"seed_index": %d}`, i),
-		).Error; err != nil {
+		cfg := jf(`{"seed_index": %d}`, i)
+		pl := pluginp.Plugin{
+			ID:        seedUUID(0x0b00, i),
+			Name:      fmt.Sprintf("Seed Plugin %03d", i),
+			Slug:      fmt.Sprintf("seed-plugin-%03d", i),
+			Enabled:   i%2 == 0,
+			Version:   "1.0.0",
+			ConfigRaw: cfg,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "slug"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"name":       pl.Name,
+				"enabled":    pl.Enabled,
+				"version":    pl.Version,
+				"config":     pl.ConfigRaw,
+				"updated_at": time.Now().UTC(),
+			}),
+		}).Create(&pl).Error; err != nil {
 			return fmt.Errorf("plugins row %d: %w", i, err)
 		}
 	}
@@ -471,12 +481,11 @@ func seedPlugins(tx *gorm.DB) error {
 
 func seedPostCategories(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_categories (post_id, category_id)
-			 VALUES (?, ?)
-			 ON CONFLICT DO NOTHING`,
-			seedUUID(0x0700, i), seedUUID(0x0400, i),
-		).Error; err != nil {
+		row := postp.PostCategory{PostID: seedUUID(0x0700, i), CategoryID: seedUUID(0x0400, i)}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "post_id"}, {Name: "category_id"}},
+			DoNothing: true,
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_categories row %d: %w", i, err)
 		}
 	}
@@ -485,12 +494,11 @@ func seedPostCategories(tx *gorm.DB) error {
 
 func seedPostTags(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_tags (post_id, tag_id)
-			 VALUES (?, ?)
-			 ON CONFLICT DO NOTHING`,
-			seedUUID(0x0700, i), seedUUID(0x0500, i),
-		).Error; err != nil {
+		row := postp.PostTag{PostID: seedUUID(0x0700, i), TagID: seedUUID(0x0500, i)}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "post_id"}, {Name: "tag_id"}},
+			DoNothing: true,
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_tags row %d: %w", i, err)
 		}
 	}
@@ -499,29 +507,39 @@ func seedPostTags(tx *gorm.DB) error {
 
 func seedPostSEO(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_seo (post_id, title, description, canonical_url, robots, og_type, og_image_url, twitter_card, structured_data)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
-			 ON CONFLICT (post_id) DO UPDATE
-			 SET title = EXCLUDED.title,
-			     description = EXCLUDED.description,
-			     canonical_url = EXCLUDED.canonical_url,
-			     robots = EXCLUDED.robots,
-			     og_type = EXCLUDED.og_type,
-			     og_image_url = EXCLUDED.og_image_url,
-			     twitter_card = EXCLUDED.twitter_card,
-			     structured_data = EXCLUDED.structured_data,
-			     updated_at = NOW()`,
-			seedUUID(0x0700, i),
-			fmt.Sprintf("SEO Title %03d", i),
-			fmt.Sprintf("SEO Description %03d", i),
-			fmt.Sprintf("https://example.local/seed-post-%03d", i),
-			"index,follow",
-			"article",
-			fmt.Sprintf("https://example.local/media/seed-image-%03d.jpg", i),
-			"summary_large_image",
-			fmt.Sprintf(`{"seed_index": %d}`, i),
-		).Error; err != nil {
+		t := fmt.Sprintf("SEO Title %03d", i)
+		d := fmt.Sprintf("SEO Description %03d", i)
+		canon := fmt.Sprintf("https://example.local/seed-post-%03d", i)
+		robots := "index,follow"
+		ogt := "article"
+		ogu := fmt.Sprintf("https://example.local/media/seed-image-%03d.jpg", i)
+		tw := "summary_large_image"
+		row := postp.PostSEO{
+			PostID:         seedUUID(0x0700, i),
+			Title:          &t,
+			Description:    &d,
+			CanonicalURL:   &canon,
+			Robots:         &robots,
+			OGType:         &ogt,
+			OGImageURL:     &ogu,
+			TwitterCard:    &tw,
+			StructuredData: jf(`{"seed_index": %d}`, i),
+			UpdatedAt:      time.Now().UTC(),
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "post_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"title":           row.Title,
+				"description":     row.Description,
+				"canonical_url":   row.CanonicalURL,
+				"robots":          row.Robots,
+				"og_type":         row.OGType,
+				"og_image_url":    row.OGImageURL,
+				"twitter_card":    row.TwitterCard,
+				"structured_data": row.StructuredData,
+				"updated_at":      time.Now().UTC(),
+			}),
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_seo row %d: %w", i, err)
 		}
 	}
@@ -530,43 +548,35 @@ func seedPostSEO(tx *gorm.DB) error {
 
 func seedPostMetrics(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_metrics (
-			    post_id, word_count, character_count, reading_time_minutes, est_read_time_seconds, view_count,
-			    unique_visitors_7d, scroll_depth_avg_percent, bounce_rate_percent, avg_time_on_page_seconds,
-			    comment_count, like_count, share_count, bookmark_count
-			 )
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-			 ON CONFLICT (post_id) DO UPDATE
-			 SET word_count = EXCLUDED.word_count,
-			     character_count = EXCLUDED.character_count,
-			     reading_time_minutes = EXCLUDED.reading_time_minutes,
-			     est_read_time_seconds = EXCLUDED.est_read_time_seconds,
-			     view_count = EXCLUDED.view_count,
-			     unique_visitors_7d = EXCLUDED.unique_visitors_7d,
-			     scroll_depth_avg_percent = EXCLUDED.scroll_depth_avg_percent,
-			     bounce_rate_percent = EXCLUDED.bounce_rate_percent,
-			     avg_time_on_page_seconds = EXCLUDED.avg_time_on_page_seconds,
-			     comment_count = EXCLUDED.comment_count,
-			     like_count = EXCLUDED.like_count,
-			     share_count = EXCLUDED.share_count,
-			     bookmark_count = EXCLUDED.bookmark_count,
-			     updated_at = NOW()`,
-			seedUUID(0x0700, i),
-			800+i,
-			5000+i*20,
-			5,
-			300,
-			int64(i*100),
-			int64(i*10),
-			60.5,
-			35.0,
-			240,
-			i%20,
-			i%25,
-			i%15,
-			i%10,
-		).Error; err != nil {
+		row := postp.PostMetrics{
+			PostID:                seedUUID(0x0700, i),
+			WordCount:             800 + i,
+			CharacterCount:        5000 + i*20,
+			ReadingTimeMinutes:    5,
+			EstReadTimeSeconds:    300,
+			ViewCount:             int64(i * 100),
+			UniqueVisitors7d:      int64(i * 10),
+			ScrollDepthAvgPercent: 60.5,
+			BounceRatePercent:     35.0,
+			AvgTimeOnPageSeconds:  240,
+			CommentCount:          i % 20,
+			LikeCount:             i % 25,
+			ShareCount:            i % 15,
+			BookmarkCount:         i % 10,
+			UpdatedAt:             time.Now().UTC(),
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "post_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"word_count": row.WordCount, "character_count": row.CharacterCount,
+				"reading_time_minutes": row.ReadingTimeMinutes, "est_read_time_seconds": row.EstReadTimeSeconds,
+				"view_count": row.ViewCount, "unique_visitors_7d": row.UniqueVisitors7d,
+				"scroll_depth_avg_percent": row.ScrollDepthAvgPercent, "bounce_rate_percent": row.BounceRatePercent,
+				"avg_time_on_page_seconds": row.AvgTimeOnPageSeconds, "comment_count": row.CommentCount,
+				"like_count": row.LikeCount, "share_count": row.ShareCount, "bookmark_count": row.BookmarkCount,
+				"updated_at": time.Now().UTC(),
+			}),
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_metrics row %d: %w", i, err)
 		}
 	}
@@ -575,15 +585,17 @@ func seedPostMetrics(tx *gorm.DB) error {
 
 func seedSeries(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO series (id, title, slug)
-			 VALUES (?, ?, ?)
-			 ON CONFLICT (slug) DO UPDATE
-			 SET title = EXCLUDED.title, updated_at = NOW()`,
-			seedUUID(0x0c00, i),
-			fmt.Sprintf("Series %03d", i),
-			fmt.Sprintf("series-%03d", i),
-		).Error; err != nil {
+		s := postp.Series{
+			ID:    seedUUID(0x0c00, i),
+			Title: fmt.Sprintf("Series %03d", i),
+			Slug:  fmt.Sprintf("series-%03d", i),
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "slug"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"title": s.Title, "updated_at": time.Now().UTC(),
+			}),
+		}).Create(&s).Error; err != nil {
 			return fmt.Errorf("series row %d: %w", i, err)
 		}
 	}
@@ -592,15 +604,18 @@ func seedSeries(tx *gorm.DB) error {
 
 func seedPostSeries(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_series (post_id, series_id, part_index, part_label)
-			 VALUES (?, ?, ?, ?)
-			 ON CONFLICT DO NOTHING`,
-			seedUUID(0x0700, i),
-			seedUUID(0x0c00, i),
-			i,
-			fmt.Sprintf("Part %03d", i),
-		).Error; err != nil {
+		pi := i
+		lbl := fmt.Sprintf("Part %03d", i)
+		row := postp.PostSeries{
+			PostID:    seedUUID(0x0700, i),
+			SeriesID:  seedUUID(0x0c00, i),
+			PartIndex: &pi,
+			PartLabel: &lbl,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "post_id"}, {Name: "series_id"}},
+			DoNothing: true,
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_series row %d: %w", i, err)
 		}
 	}
@@ -609,14 +624,12 @@ func seedPostSeries(tx *gorm.DB) error {
 
 func seedPostCoauthors(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_coauthors (post_id, user_id, sort_order)
-			 VALUES (?, ?, ?)
-			 ON CONFLICT DO NOTHING`,
-			seedUUID(0x0700, i),
-			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i)%seedRows)+1)),
-			1,
-		).Error; err != nil {
+		uid := userPublicIDFromUUID(tx, seedUUID(0x0100, ((i)%seedRows)+1))
+		row := postp.PostCoauthor{PostID: seedUUID(0x0700, i), UserID: uid, SortOrder: 1}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "post_id"}, {Name: "user_id"}},
+			DoNothing: true,
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_coauthors row %d: %w", i, err)
 		}
 	}
@@ -625,22 +638,23 @@ func seedPostCoauthors(tx *gorm.DB) error {
 
 func seedPostGalleryItems(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_gallery_items (id, post_id, media_id, sort_order, caption, alt)
-			 VALUES (?, ?, ?, ?, ?, ?)
-			 ON CONFLICT (id) DO UPDATE
-			 SET post_id = EXCLUDED.post_id,
-			     media_id = EXCLUDED.media_id,
-			     sort_order = EXCLUDED.sort_order,
-			     caption = EXCLUDED.caption,
-			     alt = EXCLUDED.alt`,
-			seedUUID(0x0d00, i),
-			seedUUID(0x0700, i),
-			seedUUID(0x0600, i),
-			i,
-			fmt.Sprintf("Gallery caption %03d", i),
-			fmt.Sprintf("Gallery alt %03d", i),
-		).Error; err != nil {
+		cap := fmt.Sprintf("Gallery caption %03d", i)
+		alt := fmt.Sprintf("Gallery alt %03d", i)
+		row := postp.PostGalleryItem{
+			ID:        seedUUID(0x0d00, i),
+			PostID:    seedUUID(0x0700, i),
+			MediaID:   seedUUID(0x0600, i),
+			SortOrder: i,
+			Caption:   &cap,
+			Alt:       &alt,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"post_id": row.PostID, "media_id": row.MediaID, "sort_order": row.SortOrder,
+				"caption": row.Caption, "alt": row.Alt,
+			}),
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_gallery_items row %d: %w", i, err)
 		}
 	}
@@ -649,20 +663,21 @@ func seedPostGalleryItems(tx *gorm.DB) error {
 
 func seedPostChangelog(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_changelog (id, post_id, at, user_id, note)
-			 VALUES (?, ?, ?, ?, ?)
-			 ON CONFLICT (id) DO UPDATE
-			 SET post_id = EXCLUDED.post_id,
-			     at = EXCLUDED.at,
-			     user_id = EXCLUDED.user_id,
-			     note = EXCLUDED.note`,
-			seedUUID(0x0e00, i),
-			seedUUID(0x0700, i),
-			time.Now().UTC().Add(-time.Duration(i)*time.Hour),
-			userPublicIDFromUUID(tx, seedUUID(0x0100, ((i+2)%seedRows)+1)),
-			fmt.Sprintf("Seed changelog entry %03d", i),
-		).Error; err != nil {
+		u := userPublicIDFromUUID(tx, seedUUID(0x0100, ((i+2)%seedRows)+1))
+		note := fmt.Sprintf("Seed changelog entry %03d", i)
+		row := postp.PostChangelog{
+			ID:     seedUUID(0x0e00, i),
+			PostID: seedUUID(0x0700, i),
+			At:     time.Now().UTC().Add(-time.Duration(i) * time.Hour),
+			UserID: int64Ptr(u),
+			Note:   note,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"post_id": row.PostID, "at": row.At, "user_id": row.UserID, "note": row.Note,
+			}),
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_changelog row %d: %w", i, err)
 		}
 	}
@@ -670,22 +685,24 @@ func seedPostChangelog(tx *gorm.DB) error {
 }
 
 func seedPostSyndication(tx *gorm.DB) error {
+	now := time.Now().UTC()
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO post_syndication (id, post_id, platform, url, status)
-			 VALUES (?, ?, ?, ?, ?)
-			 ON CONFLICT (id) DO UPDATE
-			 SET post_id = EXCLUDED.post_id,
-			     platform = EXCLUDED.platform,
-			     url = EXCLUDED.url,
-			     status = EXCLUDED.status,
-			     updated_at = NOW()`,
-			seedUUID(0x0f00, i),
-			seedUUID(0x0700, i),
-			"medium",
-			fmt.Sprintf("https://medium.example/seed-post-%03d", i),
-			"active",
-		).Error; err != nil {
+		row := postp.PostSyndication{
+			ID:        seedUUID(0x0f00, i),
+			PostID:    seedUUID(0x0700, i),
+			Platform:  "medium",
+			URL:       fmt.Sprintf("https://medium.example/seed-post-%03d", i),
+			Status:    "active",
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"post_id": row.PostID, "platform": row.Platform, "url": row.URL, "status": row.Status,
+				"updated_at": time.Now().UTC(),
+			}),
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_syndication row %d: %w", i, err)
 		}
 	}
@@ -694,12 +711,8 @@ func seedPostSyndication(tx *gorm.DB) error {
 
 func seedTranslationGroups(tx *gorm.DB) error {
 	for i := 1; i <= seedRows; i++ {
-		if err := tx.Exec(
-			`INSERT INTO translation_groups (id)
-			 VALUES (?)
-			 ON CONFLICT (id) DO NOTHING`,
-			seedUUID(0x1000, i),
-		).Error; err != nil {
+		row := postp.TranslationGroup{ID: seedUUID(0x1000, i), CreatedAt: time.Now().UTC()}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
 			return fmt.Errorf("translation_groups row %d: %w", i, err)
 		}
 	}
@@ -712,15 +725,17 @@ func seedPostTranslations(tx *gorm.DB) error {
 		if i%2 == 0 {
 			locale = "bg-BG"
 		}
-		if err := tx.Exec(
-			`INSERT INTO post_translations (post_id, group_id, locale)
-			 VALUES (?, ?, ?)
-			 ON CONFLICT (post_id) DO UPDATE
-			 SET group_id = EXCLUDED.group_id, locale = EXCLUDED.locale`,
-			seedUUID(0x0700, i),
-			seedUUID(0x1000, i),
-			locale,
-		).Error; err != nil {
+		row := postp.PostTranslation{
+			PostID:  seedUUID(0x0700, i),
+			GroupID: seedUUID(0x1000, i),
+			Locale:  locale,
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "post_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"group_id": row.GroupID, "locale": row.Locale,
+			}),
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("post_translations row %d: %w", i, err)
 		}
 	}
@@ -741,6 +756,21 @@ func seedUUID(namespace, index int) string {
 
 func userPublicIDFromUUID(tx *gorm.DB, userUUID string) int64 {
 	var id int64
-	_ = tx.Raw(`SELECT public_id FROM users WHERE id = ?`, userUUID).Scan(&id).Error
+	_ = tx.Model(&userp.User{}).Select("public_id").Where("id = ?", userUUID).Scan(&id).Error
 	return id
 }
+
+func j(s string) json.RawMessage { return json.RawMessage([]byte(s)) }
+
+func jf(format string, a ...any) json.RawMessage {
+	return json.RawMessage(fmt.Sprintf(format, a...))
+}
+
+func int64Ptr(v int64) *int64 {
+	if v <= 0 {
+		return nil
+	}
+	return &v
+}
+
+func ptrTime(t time.Time) *time.Time { return &t }

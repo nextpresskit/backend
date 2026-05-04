@@ -6,8 +6,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ports"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
 )
 
 // PostIndexHook syncs post documents to Elasticsearch after successful writes.

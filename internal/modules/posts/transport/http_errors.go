@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	postApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
+	postApp "github.com/nextpresskit/backend/internal/modules/posts/application"
 )
 
 // respondPostsServiceError maps posts application errors to HTTP responses.

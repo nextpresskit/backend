@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/nextpresskit/backend/internal/config"
 )
 
 type dummyAccessTokenParser struct{}
@@ -22,7 +24,11 @@ func TestAuthRequired_MissingAuthorizationHeader(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	r := gin.New()
-	r.GET("/private", AuthRequired(dummyAccessTokenParser{}), func(c *gin.Context) {
+	jwtCfg := config.JWTConfig{
+		AuthSource:       "header",
+		AccessCookieName: "access_token",
+	}
+	r.GET("/private", AuthRequired(dummyAccessTokenParser{}, jwtCfg), func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 
@@ -39,7 +45,11 @@ func TestAuthRequired_InvalidAuthorizationHeaderScheme(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	r := gin.New()
-	r.GET("/private", AuthRequired(dummyAccessTokenParser{}), func(c *gin.Context) {
+	jwtCfg := config.JWTConfig{
+		AuthSource:       "header",
+		AccessCookieName: "access_token",
+	}
+	r.GET("/private", AuthRequired(dummyAccessTokenParser{}, jwtCfg), func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 
@@ -57,7 +67,11 @@ func TestAuthRequired_InvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	r := gin.New()
-	r.GET("/private", AuthRequired(dummyAccessTokenParser{}), func(c *gin.Context) {
+	jwtCfg := config.JWTConfig{
+		AuthSource:       "header",
+		AccessCookieName: "access_token",
+	}
+	r.GET("/private", AuthRequired(dummyAccessTokenParser{}, jwtCfg), func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 
@@ -75,7 +89,11 @@ func TestAuthRequired_ValidTokenSetsUserID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	r := gin.New()
-	r.GET("/private", AuthRequired(dummyAccessTokenParser{}), func(c *gin.Context) {
+	jwtCfg := config.JWTConfig{
+		AuthSource:       "header",
+		AccessCookieName: "access_token",
+	}
+	r.GET("/private", AuthRequired(dummyAccessTokenParser{}, jwtCfg), func(c *gin.Context) {
 		v, ok := c.Get(ContextUserIDKey)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "missing_user_context"})
@@ -87,6 +105,35 @@ func TestAuthRequired_ValidTokenSetsUserID(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/private", nil)
 	req.Header.Set("Authorization", "Bearer good")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestAuthRequired_ValidAccessTokenCookieSetsUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	jwtCfg := config.JWTConfig{
+		AuthSource:       "cookie",
+		AccessCookieName: "access_token",
+	}
+
+	r.GET("/private", AuthRequired(dummyAccessTokenParser{}, jwtCfg), func(c *gin.Context) {
+		v, ok := c.Get(ContextUserIDKey)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "missing_user_context"})
+			return
+		}
+		userID, _ := v.(string)
+		c.JSON(http.StatusOK, gin.H{"userId": userID})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.AddCookie(&http.Cookie{Name: "access_token", Value: "good", Path: "/"})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

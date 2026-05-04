@@ -10,11 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
-	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/model"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
+	platformMiddleware "github.com/nextpresskit/backend/internal/platform/middleware"
 )
 
 type Handler struct {

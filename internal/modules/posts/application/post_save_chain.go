@@ -3,7 +3,7 @@ package application
 import (
 	"context"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ports"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
 )
 
 // PostSaveChain composes multiple PostSave implementations.

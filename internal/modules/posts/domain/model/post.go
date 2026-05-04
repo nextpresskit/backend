@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
 )
 
 // Post is the aggregate root for posts module read/write paths.

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	posterr "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/series"
+	posterr "github.com/nextpresskit/backend/internal/modules/posts/domain"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/series"
 )
 
 // SeriesService handles top-level series CRUD.

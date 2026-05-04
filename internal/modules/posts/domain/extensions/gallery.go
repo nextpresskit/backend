@@ -3,7 +3,7 @@ package extensions
 import (
 	"context"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
 )
 
 // PostGalleryStore manages post_gallery_items.

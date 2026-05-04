@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	mediaDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/domain"
+	mediaDomain "github.com/nextpresskit/backend/internal/modules/media/domain"
 )
 
 var (

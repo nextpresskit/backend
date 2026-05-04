@@ -3,11 +3,11 @@ package transport
 import (
 	"context"
 
-	postApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/series"
+	postApp "github.com/nextpresskit/backend/internal/modules/posts/application"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/model"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/series"
 )
 
 // PostsElasticsearchBackend is optional Elasticsearch search + post document sync.

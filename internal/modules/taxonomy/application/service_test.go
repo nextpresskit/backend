@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	taxDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/domain"
+	taxDomain "github.com/nextpresskit/backend/internal/modules/taxonomy/domain"
 )
 
 type taxonomyRepoStub struct {

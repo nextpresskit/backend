@@ -3,8 +3,8 @@ package ports
 import (
 	"context"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/model"
 )
 
 // PostLoadUpdater is the minimal persistence surface for PostSave hooks that reload and patch a post.

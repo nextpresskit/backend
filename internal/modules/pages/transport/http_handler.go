@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	pageApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/application"
-	pageDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/domain"
-	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
+	pageApp "github.com/nextpresskit/backend/internal/modules/pages/application"
+	pageDomain "github.com/nextpresskit/backend/internal/modules/pages/domain"
+	platformMiddleware "github.com/nextpresskit/backend/internal/platform/middleware"
 )
 
 type Handler struct {

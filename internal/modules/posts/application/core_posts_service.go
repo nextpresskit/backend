@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 
-	posterr "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ports"
+	posterr "github.com/nextpresskit/backend/internal/modules/posts/domain"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/model"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
 )
 
 // CorePostsService handles core post CRUD, public reads, and taxonomy assignments.

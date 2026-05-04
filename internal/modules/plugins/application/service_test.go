@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	pluginsDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/domain"
+	pluginsDomain "github.com/nextpresskit/backend/internal/modules/plugins/domain"
 )
 
 type pluginsRepoStub struct {

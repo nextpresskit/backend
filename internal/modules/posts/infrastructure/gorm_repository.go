@@ -10,12 +10,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ports"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/series"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/model"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/series"
+	postp "github.com/nextpresskit/backend/internal/modules/posts/persistence"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -27,48 +28,6 @@ type gormUserSummary struct {
 	LastName  string `gorm:"column:last_name"`
 	Email     string `gorm:"column:email"`
 }
-
-type gormPost struct {
-	ID                 string          `gorm:"column:id;type:uuid;primaryKey"`
-	UUID               *string         `gorm:"column:uuid;type:uuid;uniqueIndex"`
-	AuthorID           int64           `gorm:"column:author_id;not null;index"`
-	Title              string          `gorm:"column:title;not null"`
-	Slug               string          `gorm:"column:slug;not null;uniqueIndex"`
-	Subtitle           string          `gorm:"column:subtitle"`
-	Excerpt            string          `gorm:"column:excerpt"`
-	PostType           string          `gorm:"column:post_type"`
-	Format             string          `gorm:"column:format"`
-	Visibility         string          `gorm:"column:visibility;not null"`
-	Locale             string          `gorm:"column:locale;not null"`
-	Timezone           string          `gorm:"column:timezone;not null"`
-	Content            string          `gorm:"column:content;not null"`
-	Status             string          `gorm:"column:status;not null"`
-	WorkflowStage      string          `gorm:"column:workflow_stage;not null"`
-	Revision           int             `gorm:"column:revision;not null"`
-	ReviewerUserID     *int64          `gorm:"column:reviewer_user_id"`
-	LastEditedByUserID *int64          `gorm:"column:last_edited_by_user_id"`
-	ScheduledPublishAt *time.Time      `gorm:"column:scheduled_publish_at"`
-	PublishedAt        *time.Time      `gorm:"column:published_at"`
-	FirstIndexedAt     *time.Time      `gorm:"column:first_indexed_at"`
-	CustomFields       json.RawMessage `gorm:"column:custom_fields;type:jsonb;not null"`
-	Flags              json.RawMessage `gorm:"column:flags;type:jsonb;not null"`
-	Engagement         json.RawMessage `gorm:"column:engagement;type:jsonb;not null"`
-	Workflow           json.RawMessage `gorm:"column:workflow;type:jsonb;not null"`
-	FeaturedMediaID    *string         `gorm:"column:featured_media_id;type:uuid"`
-	FeaturedAlt        *string         `gorm:"column:featured_alt"`
-	FeaturedWidth      *int            `gorm:"column:featured_width"`
-	FeaturedHeight     *int            `gorm:"column:featured_height"`
-	FeaturedFocalX     *float32        `gorm:"column:featured_focal_x"`
-	FeaturedFocalY     *float32        `gorm:"column:featured_focal_y"`
-	FeaturedCredit     *string         `gorm:"column:featured_credit"`
-	FeaturedLicense    *string         `gorm:"column:featured_license"`
-	PrimaryCategoryID  *string         `gorm:"column:primary_category_id;type:uuid"`
-	CreatedAt          time.Time       `gorm:"column:created_at;not null"`
-	UpdatedAt          time.Time       `gorm:"column:updated_at;not null"`
-	DeletedAt          gorm.DeletedAt  `gorm:"column:deleted_at;index"`
-}
-
-func (gormPost) TableName() string { return "posts" }
 
 type GormRepository struct {
 	db *gorm.DB
@@ -104,7 +63,7 @@ func (r *GormRepository) FindByID(ctx context.Context, id ident.PostID) (*model.
 }
 
 func (r *GormRepository) FindBySlug(ctx context.Context, slug string) (*model.Post, error) {
-	var row gormPost
+	var row postp.Post
 	if err := r.db.WithContext(ctx).
 		Where("slug = ?", slug).
 		First(&row).Error; err != nil {
@@ -121,7 +80,7 @@ func (r *GormRepository) List(ctx context.Context, includeDeleted bool, limit in
 }
 
 func (r *GormRepository) ListFiltered(ctx context.Context, includeDeleted bool, limit int, offset int, status string, authorID string, q string) ([]model.Post, error) {
-	dbq := r.db.WithContext(ctx).Model(&gormPost{}).Order("created_at DESC").Limit(limit).Offset(offset)
+	dbq := r.db.WithContext(ctx).Model(&postp.Post{}).Order("created_at DESC").Limit(limit).Offset(offset)
 	if includeDeleted {
 		dbq = dbq.Unscoped()
 	}
@@ -137,7 +96,7 @@ func (r *GormRepository) ListFiltered(ctx context.Context, includeDeleted bool, 
 		dbq = dbq.Where("(title ILIKE ? OR content ILIKE ?)", like, like)
 	}
 
-	var rows []gormPost
+	var rows []postp.Post
 	if err := dbq.Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -152,7 +111,7 @@ func (r *GormRepository) ListFiltered(ctx context.Context, includeDeleted bool, 
 
 func (r *GormRepository) ListPublished(ctx context.Context, limit int, offset int, q string, categoryID string, tagID string) ([]model.Post, error) {
 	dbq := r.db.WithContext(ctx).
-		Model(&gormPost{}).
+		Model(&postp.Post{}).
 		Where("status = ?", string(ident.StatusPublished)).
 		Order("published_at DESC").
 		Order("created_at DESC").
@@ -172,7 +131,7 @@ func (r *GormRepository) ListPublished(ctx context.Context, limit int, offset in
 			Where("pt.tag_id = ?", tagID)
 	}
 
-	var rows []gormPost
+	var rows []postp.Post
 	if err := dbq.Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -186,7 +145,7 @@ func (r *GormRepository) ListPublished(ctx context.Context, limit int, offset in
 }
 
 func (r *GormRepository) FindPublishedBySlug(ctx context.Context, slug string) (*model.Post, error) {
-	var row gormPost
+	var row postp.Post
 	if err := r.db.WithContext(ctx).
 		Where("slug = ?", slug).
 		Where("status = ?", string(ident.StatusPublished)).
@@ -202,7 +161,7 @@ func (r *GormRepository) FindPublishedBySlug(ctx context.Context, slug string) (
 func (r *GormRepository) Update(ctx context.Context, post *model.Post) error {
 	m := fromDomain(post)
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&gormPost{}).
+		if err := tx.Model(&postp.Post{}).
 			Where("id = ?", m.ID).
 			Updates(m).Error; err != nil {
 			return err
@@ -220,38 +179,24 @@ func (r *GormRepository) Update(ctx context.Context, post *model.Post) error {
 func (r *GormRepository) Delete(ctx context.Context, id ident.PostID) error {
 	return r.db.WithContext(ctx).
 		Where("id = ?", string(id)).
-		Delete(&gormPost{}).Error
+		Delete(&postp.Post{}).Error
 }
-
-type gormPostCategory struct {
-	PostID     string `gorm:"column:post_id;type:uuid;primaryKey"`
-	CategoryID string `gorm:"column:category_id;type:uuid;primaryKey"`
-}
-
-func (gormPostCategory) TableName() string { return "post_categories" }
-
-type gormPostTag struct {
-	PostID string `gorm:"column:post_id;type:uuid;primaryKey"`
-	TagID  string `gorm:"column:tag_id;type:uuid;primaryKey"`
-}
-
-func (gormPostTag) TableName() string { return "post_tags" }
 
 func (r *GormRepository) SetCategories(ctx context.Context, postID ident.PostID, categoryIDs []string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("post_id = ?", string(postID)).Delete(&gormPostCategory{}).Error; err != nil {
+		if err := tx.Where("post_id = ?", string(postID)).Delete(&postp.PostCategory{}).Error; err != nil {
 			return err
 		}
 		if len(categoryIDs) == 0 {
 			return nil
 		}
 
-		rows := make([]gormPostCategory, 0, len(categoryIDs))
+		rows := make([]postp.PostCategory, 0, len(categoryIDs))
 		for _, id := range categoryIDs {
 			if id == "" {
 				continue
 			}
-			rows = append(rows, gormPostCategory{PostID: string(postID), CategoryID: id})
+			rows = append(rows, postp.PostCategory{PostID: string(postID), CategoryID: id})
 		}
 		if len(rows) == 0 {
 			return nil
@@ -263,19 +208,19 @@ func (r *GormRepository) SetCategories(ctx context.Context, postID ident.PostID,
 
 func (r *GormRepository) SetTags(ctx context.Context, postID ident.PostID, tagIDs []string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("post_id = ?", string(postID)).Delete(&gormPostTag{}).Error; err != nil {
+		if err := tx.Where("post_id = ?", string(postID)).Delete(&postp.PostTag{}).Error; err != nil {
 			return err
 		}
 		if len(tagIDs) == 0 {
 			return nil
 		}
 
-		rows := make([]gormPostTag, 0, len(tagIDs))
+		rows := make([]postp.PostTag, 0, len(tagIDs))
 		for _, id := range tagIDs {
 			if id == "" {
 				continue
 			}
-			rows = append(rows, gormPostTag{PostID: string(postID), TagID: id})
+			rows = append(rows, postp.PostTag{PostID: string(postID), TagID: id})
 		}
 		if len(rows) == 0 {
 			return nil
@@ -287,12 +232,12 @@ func (r *GormRepository) SetTags(ctx context.Context, postID ident.PostID, tagID
 
 func (r *GormRepository) SetPrimaryCategory(ctx context.Context, postID ident.PostID, categoryID *string) error {
 	return r.db.WithContext(ctx).
-		Model(&gormPost{}).
+		Model(&postp.Post{}).
 		Where("id = ?", string(postID)).
 		Update("primary_category_id", categoryID).Error
 }
 
-func toDomain(m *gormPost) *model.Post {
+func toDomain(m *postp.Post) *model.Post {
 	var deletedAt *time.Time
 	if m.DeletedAt.Valid {
 		t := m.DeletedAt.Time
@@ -338,12 +283,12 @@ func toDomain(m *gormPost) *model.Post {
 	}
 }
 
-func fromDomain(p *model.Post) *gormPost {
+func fromDomain(p *model.Post) *postp.Post {
 	var deleted gorm.DeletedAt
 	if p.DeletedAt != nil {
 		deleted = gorm.DeletedAt{Time: *p.DeletedAt, Valid: true}
 	}
-	return &gormPost{
+	return &postp.Post{
 		ID:                 string(p.ID),
 		UUID:               p.UUID,
 		AuthorID:           parseIDString(p.AuthorID),
@@ -384,43 +329,8 @@ func fromDomain(p *model.Post) *gormPost {
 	}
 }
 
-type gormPostSEO struct {
-	PostID         string          `gorm:"column:post_id;type:uuid;primaryKey"`
-	Title          *string         `gorm:"column:title"`
-	Description    *string         `gorm:"column:description"`
-	CanonicalURL   *string         `gorm:"column:canonical_url"`
-	Robots         *string         `gorm:"column:robots"`
-	OGType         *string         `gorm:"column:og_type"`
-	OGImageURL     *string         `gorm:"column:og_image_url"`
-	TwitterCard    *string         `gorm:"column:twitter_card"`
-	StructuredData json.RawMessage `gorm:"column:structured_data;type:jsonb;not null"`
-	UpdatedAt      time.Time       `gorm:"column:updated_at;not null"`
-}
-
-func (gormPostSEO) TableName() string { return "post_seo" }
-
-type gormPostMetrics struct {
-	PostID                string    `gorm:"column:post_id;type:uuid;primaryKey"`
-	WordCount             int       `gorm:"column:word_count;not null"`
-	CharacterCount        int       `gorm:"column:character_count;not null"`
-	ReadingTimeMinutes    int       `gorm:"column:reading_time_minutes;not null"`
-	EstReadTimeSeconds    int       `gorm:"column:est_read_time_seconds;not null"`
-	ViewCount             int64     `gorm:"column:view_count;not null"`
-	UniqueVisitors7d      int64     `gorm:"column:unique_visitors_7d;not null"`
-	ScrollDepthAvgPercent float32   `gorm:"column:scroll_depth_avg_percent;not null"`
-	BounceRatePercent     float32   `gorm:"column:bounce_rate_percent;not null"`
-	AvgTimeOnPageSeconds  int       `gorm:"column:avg_time_on_page_seconds;not null"`
-	CommentCount          int       `gorm:"column:comment_count;not null"`
-	LikeCount             int       `gorm:"column:like_count;not null"`
-	ShareCount            int       `gorm:"column:share_count;not null"`
-	BookmarkCount         int       `gorm:"column:bookmark_count;not null"`
-	UpdatedAt             time.Time `gorm:"column:updated_at;not null"`
-}
-
-func (gormPostMetrics) TableName() string { return "post_metrics" }
-
 func (r *GormRepository) findByIDWithExtras(ctx context.Context, db *gorm.DB, id ident.PostID) (*model.Post, error) {
-	var row gormPost
+	var row postp.Post
 	if err := db.
 		Where("id = ?", string(id)).
 		First(&row).Error; err != nil {
@@ -539,14 +449,14 @@ func loadUserSummary(ctx context.Context, db *gorm.DB, userID int64) (*model.Use
 	}, nil
 }
 
-type gormPostCategoryRow struct {
+type postCategoryJoinRow struct {
 	ID   string `gorm:"column:id"`
 	Name string `gorm:"column:name"`
 	Slug string `gorm:"column:slug"`
 }
 
 func loadPostCategories(ctx context.Context, db *gorm.DB, postID string, primaryCategoryID *string) ([]model.PostCategory, error) {
-	var rows []gormPostCategoryRow
+	var rows []postCategoryJoinRow
 	if err := db.WithContext(ctx).
 		Table("categories c").
 		Select("c.id, c.name, c.slug").
@@ -564,14 +474,14 @@ func loadPostCategories(ctx context.Context, db *gorm.DB, postID string, primary
 	return out, nil
 }
 
-type gormPostTagRow struct {
+type postTagJoinRow struct {
 	ID   string `gorm:"column:id"`
 	Name string `gorm:"column:name"`
 	Slug string `gorm:"column:slug"`
 }
 
 func loadPostTags(ctx context.Context, db *gorm.DB, postID string) ([]model.PostTag, error) {
-	var rows []gormPostTagRow
+	var rows []postTagJoinRow
 	if err := db.WithContext(ctx).
 		Table("tags t").
 		Select("t.id, t.name, t.slug").
@@ -588,7 +498,7 @@ func loadPostTags(ctx context.Context, db *gorm.DB, postID string) ([]model.Post
 	return out, nil
 }
 
-type gormPostSeriesRow struct {
+type postSeriesJoinRow struct {
 	ID        string  `gorm:"column:id"`
 	Title     string  `gorm:"column:title"`
 	Slug      string  `gorm:"column:slug"`
@@ -597,7 +507,7 @@ type gormPostSeriesRow struct {
 }
 
 func loadPostSeries(ctx context.Context, db *gorm.DB, postID string) (*model.PostSeries, error) {
-	var row gormPostSeriesRow
+	var row postSeriesJoinRow
 	if err := db.WithContext(ctx).
 		Table("post_series ps").
 		Select("s.id, s.title, s.slug, ps.part_index, ps.part_label").
@@ -618,7 +528,7 @@ func loadPostSeries(ctx context.Context, db *gorm.DB, postID string) (*model.Pos
 	}, nil
 }
 
-type gormPostSyndicationRow struct {
+type postSyndicationJoinRow struct {
 	ID       string `gorm:"column:id"`
 	Platform string `gorm:"column:platform"`
 	URL      string `gorm:"column:url"`
@@ -626,7 +536,7 @@ type gormPostSyndicationRow struct {
 }
 
 func loadPostSyndication(ctx context.Context, db *gorm.DB, postID string) ([]model.PostSyndication, error) {
-	var rows []gormPostSyndicationRow
+	var rows []postSyndicationJoinRow
 	if err := db.WithContext(ctx).
 		Table("post_syndication").
 		Select("id, platform, url, status").
@@ -642,7 +552,7 @@ func loadPostSyndication(ctx context.Context, db *gorm.DB, postID string) ([]mod
 	return out, nil
 }
 
-type gormPostChangelogRow struct {
+type postChangelogJoinRow struct {
 	ID     string    `gorm:"column:id"`
 	At     time.Time `gorm:"column:at"`
 	UserID *int64    `gorm:"column:user_id"`
@@ -650,7 +560,7 @@ type gormPostChangelogRow struct {
 }
 
 func loadPostChangelog(ctx context.Context, db *gorm.DB, postID string) ([]model.PostChangelogEntry, error) {
-	var rows []gormPostChangelogRow
+	var rows []postChangelogJoinRow
 	if err := db.WithContext(ctx).
 		Table("post_changelog").
 		Select("id, at, user_id, note").
@@ -670,7 +580,7 @@ func loadPostChangelog(ctx context.Context, db *gorm.DB, postID string) ([]model
 	return out, nil
 }
 
-type gormPostGalleryRow struct {
+type postGalleryJoinRow struct {
 	ID        string  `gorm:"column:id"`
 	MediaID   string  `gorm:"column:media_id"`
 	URL       string  `gorm:"column:public_url"`
@@ -680,7 +590,7 @@ type gormPostGalleryRow struct {
 }
 
 func loadPostGallery(ctx context.Context, db *gorm.DB, postID string) ([]model.PostGalleryItem, error) {
-	var rows []gormPostGalleryRow
+	var rows []postGalleryJoinRow
 	if err := db.WithContext(ctx).
 		Table("post_gallery_items gi").
 		Select("gi.id, gi.media_id, m.public_url, gi.sort_order, gi.caption, gi.alt").
@@ -698,7 +608,7 @@ func loadPostGallery(ctx context.Context, db *gorm.DB, postID string) ([]model.P
 	return out, nil
 }
 
-type gormPostTranslationRow struct {
+type postTranslationJoinRow struct {
 	PostID  string `gorm:"column:post_id"`
 	Locale  string `gorm:"column:locale"`
 	Slug    string `gorm:"column:slug"`
@@ -722,7 +632,7 @@ func loadPostTranslations(ctx context.Context, db *gorm.DB, postID string) (*mod
 		return nil, err
 	}
 	gid := group.GroupID
-	var rows []gormPostTranslationRow
+	var rows []postTranslationJoinRow
 	if err := db.WithContext(ctx).
 		Table("post_translations pt").
 		Select("pt.post_id, pt.locale, pt.group_id, p.slug").
@@ -740,7 +650,7 @@ func loadPostTranslations(ctx context.Context, db *gorm.DB, postID string) (*mod
 }
 
 func loadSEO(ctx context.Context, db *gorm.DB, postID ident.PostID) (*seo.PostSEO, error) {
-	var row gormPostSEO
+	var row postp.PostSEO
 	if err := db.WithContext(ctx).Where("post_id = ?", string(postID)).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -761,7 +671,7 @@ func loadSEO(ctx context.Context, db *gorm.DB, postID ident.PostID) (*seo.PostSE
 }
 
 func loadMetrics(ctx context.Context, db *gorm.DB, postID ident.PostID) (*metrics.PostMetrics, error) {
-	var row gormPostMetrics
+	var row postp.PostMetrics
 	if err := db.WithContext(ctx).Where("post_id = ?", string(postID)).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -790,7 +700,7 @@ func upsertSEO(ctx context.Context, tx *gorm.DB, postID ident.PostID, seo *seo.P
 	if seo == nil {
 		return nil
 	}
-	row := &gormPostSEO{
+	row := &postp.PostSEO{
 		PostID:         string(postID),
 		Title:          seo.Title,
 		Description:    seo.Description,
@@ -814,7 +724,7 @@ func upsertMetrics(ctx context.Context, tx *gorm.DB, postID ident.PostID, m *met
 	if m == nil {
 		return nil
 	}
-	row := &gormPostMetrics{
+	row := &postp.PostMetrics{
 		PostID:                string(postID),
 		WordCount:             m.WordCount,
 		CharacterCount:        m.CharacterCount,
@@ -864,7 +774,7 @@ func nonNilJSON(b []byte) json.RawMessage {
 // --- Sub-resource CRUD (admin) ---
 
 func (r *GormRepository) DeleteSEO(ctx context.Context, postID ident.PostID) error {
-	return r.db.WithContext(ctx).Where("post_id = ?", string(postID)).Delete(&gormPostSEO{}).Error
+	return r.db.WithContext(ctx).Where("post_id = ?", string(postID)).Delete(&postp.PostSEO{}).Error
 }
 
 func (r *GormRepository) UpsertSEOOnly(ctx context.Context, postID ident.PostID, seo *seo.PostSEO) error {
@@ -892,28 +802,19 @@ func (r *GormRepository) SetFeaturedImage(ctx context.Context, postID ident.Post
 		"featured_license":  license,
 		"updated_at":        time.Now().UTC(),
 	}
-	return r.db.WithContext(ctx).Model(&gormPost{}).Where("id = ?", string(postID)).Updates(updates).Error
+	return r.db.WithContext(ctx).Model(&postp.Post{}).Where("id = ?", string(postID)).Updates(updates).Error
 }
-
-type gormPostSeriesLink struct {
-	PostID    string  `gorm:"column:post_id;type:uuid;primaryKey"`
-	SeriesID  string  `gorm:"column:series_id;type:uuid;primaryKey"`
-	PartIndex *int    `gorm:"column:part_index"`
-	PartLabel *string `gorm:"column:part_label"`
-}
-
-func (gormPostSeriesLink) TableName() string { return "post_series" }
 
 func (r *GormRepository) SetPostSeries(ctx context.Context, postID ident.PostID, seriesID *string, partIndex *int, partLabel *string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("post_id = ?", string(postID)).Delete(&gormPostSeriesLink{}).Error; err != nil {
+		if err := tx.Where("post_id = ?", string(postID)).Delete(&postp.PostSeries{}).Error; err != nil {
 			return err
 		}
 		if seriesID == nil || strings.TrimSpace(*seriesID) == "" {
 			return nil
 		}
 		sid := strings.TrimSpace(*seriesID)
-		row := gormPostSeriesLink{
+		row := postp.PostSeries{
 			PostID:    string(postID),
 			SeriesID:  sid,
 			PartIndex: partIndex,
@@ -923,17 +824,9 @@ func (r *GormRepository) SetPostSeries(ctx context.Context, postID ident.PostID,
 	})
 }
 
-type gormPostCoauthor struct {
-	PostID    string `gorm:"column:post_id;type:uuid;primaryKey"`
-	UserID    string `gorm:"column:user_id;type:uuid;primaryKey"`
-	SortOrder int    `gorm:"column:sort_order"`
-}
-
-func (gormPostCoauthor) TableName() string { return "post_coauthors" }
-
 func (r *GormRepository) ReplaceCoauthors(ctx context.Context, postID ident.PostID, userIDs []string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("post_id = ?", string(postID)).Delete(&gormPostCoauthor{}).Error; err != nil {
+		if err := tx.Where("post_id = ?", string(postID)).Delete(&postp.PostCoauthor{}).Error; err != nil {
 			return err
 		}
 		for i, uid := range userIDs {
@@ -941,7 +834,11 @@ func (r *GormRepository) ReplaceCoauthors(ctx context.Context, postID ident.Post
 			if uid == "" {
 				continue
 			}
-			if err := tx.Create(&gormPostCoauthor{PostID: string(postID), UserID: uid, SortOrder: i}).Error; err != nil {
+			pid, err := strconv.ParseInt(uid, 10, 64)
+			if err != nil || pid <= 0 {
+				continue
+			}
+			if err := tx.Create(&postp.PostCoauthor{PostID: string(postID), UserID: pid, SortOrder: i}).Error; err != nil {
 				return err
 			}
 		}
@@ -949,24 +846,13 @@ func (r *GormRepository) ReplaceCoauthors(ctx context.Context, postID ident.Post
 	})
 }
 
-type gormPostGalleryItemRow struct {
-	ID        string  `gorm:"column:id;type:uuid;primaryKey"`
-	PostID    string  `gorm:"column:post_id;type:uuid;not null"`
-	MediaID   string  `gorm:"column:media_id;type:uuid;not null"`
-	SortOrder int     `gorm:"column:sort_order;not null"`
-	Caption   *string `gorm:"column:caption"`
-	Alt       *string `gorm:"column:alt"`
-}
-
-func (gormPostGalleryItemRow) TableName() string { return "post_gallery_items" }
-
 func (r *GormRepository) CreateGalleryItem(ctx context.Context, postID ident.PostID, mediaID string, sortOrder int, caption *string, alt *string) (string, error) {
 	mediaID = strings.TrimSpace(mediaID)
 	if mediaID == "" {
 		return "", errors.New("media_id_required")
 	}
 	id := uuid.NewString()
-	row := &gormPostGalleryItemRow{
+	row := &postp.PostGalleryItem{
 		ID:        id,
 		PostID:    string(postID),
 		MediaID:   mediaID,
@@ -991,7 +877,7 @@ func (r *GormRepository) UpdateGalleryItem(ctx context.Context, postID ident.Pos
 	if alt != nil {
 		updates["alt"] = alt
 	}
-	res := r.db.WithContext(ctx).Model(&gormPostGalleryItemRow{}).
+	res := r.db.WithContext(ctx).Model(&postp.PostGalleryItem{}).
 		Where("id = ? AND post_id = ?", strings.TrimSpace(itemID), string(postID)).
 		Updates(updates)
 	if res.Error != nil {
@@ -1006,30 +892,29 @@ func (r *GormRepository) UpdateGalleryItem(ctx context.Context, postID ident.Pos
 func (r *GormRepository) DeleteGalleryItem(ctx context.Context, postID ident.PostID, itemID string) error {
 	return r.db.WithContext(ctx).
 		Where("id = ? AND post_id = ?", strings.TrimSpace(itemID), string(postID)).
-		Delete(&gormPostGalleryItemRow{}).Error
+		Delete(&postp.PostGalleryItem{}).Error
 }
-
-type gormPostChangelog struct {
-	ID     string    `gorm:"column:id;type:uuid;primaryKey"`
-	PostID string    `gorm:"column:post_id;type:uuid;not null"`
-	At     time.Time `gorm:"column:at;not null"`
-	UserID *string   `gorm:"column:user_id;type:uuid"`
-	Note   string    `gorm:"column:note;not null"`
-}
-
-func (gormPostChangelog) TableName() string { return "post_changelog" }
 
 func (r *GormRepository) CreateChangelog(ctx context.Context, postID ident.PostID, userID *string, note string) (string, error) {
 	note = strings.TrimSpace(note)
 	if note == "" {
 		return "", errors.New("note_required")
 	}
+	var userPublic *int64
+	if userID != nil {
+		v := strings.TrimSpace(*userID)
+		if v != "" {
+			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+				userPublic = &n
+			}
+		}
+	}
 	id := uuid.NewString()
-	row := gormPostChangelog{
+	row := postp.PostChangelog{
 		ID:     id,
 		PostID: string(postID),
 		At:     time.Now().UTC(),
-		UserID: userID,
+		UserID: userPublic,
 		Note:   note,
 	}
 	if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -1041,7 +926,7 @@ func (r *GormRepository) CreateChangelog(ctx context.Context, postID ident.PostI
 func (r *GormRepository) DeleteChangelog(ctx context.Context, postID ident.PostID, changelogID string) error {
 	res := r.db.WithContext(ctx).
 		Where("id = ? AND post_id = ?", strings.TrimSpace(changelogID), string(postID)).
-		Delete(&gormPostChangelog{})
+		Delete(&postp.PostChangelog{})
 	if res.Error != nil {
 		return res.Error
 	}
@@ -1050,18 +935,6 @@ func (r *GormRepository) DeleteChangelog(ctx context.Context, postID ident.PostI
 	}
 	return nil
 }
-
-type gormPostSyndicationRowFull struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
-	PostID    string    `gorm:"column:post_id;type:uuid;not null"`
-	Platform  string    `gorm:"column:platform;not null"`
-	URL       string    `gorm:"column:url;not null"`
-	Status    string    `gorm:"column:status;not null"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
-}
-
-func (gormPostSyndicationRowFull) TableName() string { return "post_syndication" }
 
 func (r *GormRepository) CreateSyndication(ctx context.Context, postID ident.PostID, platform, url, status string) (string, error) {
 	platform = strings.TrimSpace(platform)
@@ -1074,7 +947,7 @@ func (r *GormRepository) CreateSyndication(ctx context.Context, postID ident.Pos
 	}
 	id := uuid.NewString()
 	now := time.Now().UTC()
-	row := gormPostSyndicationRowFull{
+	row := postp.PostSyndication{
 		ID:        id,
 		PostID:    string(postID),
 		Platform:  platform,
@@ -1100,7 +973,7 @@ func (r *GormRepository) UpdateSyndication(ctx context.Context, postID ident.Pos
 	if status != nil {
 		updates["status"] = strings.TrimSpace(*status)
 	}
-	res := r.db.WithContext(ctx).Model(&gormPostSyndicationRowFull{}).
+	res := r.db.WithContext(ctx).Model(&postp.PostSyndication{}).
 		Where("id = ? AND post_id = ?", strings.TrimSpace(id), string(postID)).
 		Updates(updates)
 	if res.Error != nil {
@@ -1115,7 +988,7 @@ func (r *GormRepository) UpdateSyndication(ctx context.Context, postID ident.Pos
 func (r *GormRepository) DeleteSyndication(ctx context.Context, postID ident.PostID, id string) error {
 	res := r.db.WithContext(ctx).
 		Where("id = ? AND post_id = ?", strings.TrimSpace(id), string(postID)).
-		Delete(&gormPostSyndicationRowFull{})
+		Delete(&postp.PostSyndication{})
 	if res.Error != nil {
 		return res.Error
 	}
@@ -1136,7 +1009,7 @@ func (r *GormRepository) UpdateSyndicationByID(ctx context.Context, id string, p
 	if status != nil {
 		updates["status"] = strings.TrimSpace(*status)
 	}
-	res := r.db.WithContext(ctx).Model(&gormPostSyndicationRowFull{}).
+	res := r.db.WithContext(ctx).Model(&postp.PostSyndication{}).
 		Where("id = ?", strings.TrimSpace(id)).
 		Updates(updates)
 	if res.Error != nil {
@@ -1151,7 +1024,7 @@ func (r *GormRepository) UpdateSyndicationByID(ctx context.Context, id string, p
 func (r *GormRepository) DeleteSyndicationByID(ctx context.Context, id string) error {
 	res := r.db.WithContext(ctx).
 		Where("id = ?", strings.TrimSpace(id)).
-		Delete(&gormPostSyndicationRowFull{})
+		Delete(&postp.PostSyndication{})
 	if res.Error != nil {
 		return res.Error
 	}
@@ -1161,21 +1034,6 @@ func (r *GormRepository) DeleteSyndicationByID(ctx context.Context, id string) e
 	return nil
 }
 
-type gormTranslationGroupRow struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-}
-
-func (gormTranslationGroupRow) TableName() string { return "translation_groups" }
-
-type gormPostTranslationRowFull struct {
-	PostID  string `gorm:"column:post_id;type:uuid;primaryKey"`
-	GroupID string `gorm:"column:group_id;type:uuid;not null"`
-	Locale  string `gorm:"column:locale;not null"`
-}
-
-func (gormPostTranslationRowFull) TableName() string { return "post_translations" }
-
 func (r *GormRepository) PutPostTranslation(ctx context.Context, postID ident.PostID, groupID *string, locale string) (string, error) {
 	locale = strings.TrimSpace(locale)
 	if locale == "" {
@@ -1183,14 +1041,14 @@ func (r *GormRepository) PutPostTranslation(ctx context.Context, postID ident.Po
 	}
 	var resolved string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("post_id = ?", string(postID)).Delete(&gormPostTranslationRowFull{}).Error; err != nil {
+		if err := tx.Where("post_id = ?", string(postID)).Delete(&postp.PostTranslation{}).Error; err != nil {
 			return err
 		}
 		gid := ""
 		if groupID != nil && strings.TrimSpace(*groupID) != "" {
 			gid = strings.TrimSpace(*groupID)
 			var n int64
-			if err := tx.Model(&gormTranslationGroupRow{}).Where("id = ?", gid).Count(&n).Error; err != nil {
+			if err := tx.Model(&postp.TranslationGroup{}).Where("id = ?", gid).Count(&n).Error; err != nil {
 				return err
 			}
 			if n == 0 {
@@ -1199,11 +1057,11 @@ func (r *GormRepository) PutPostTranslation(ctx context.Context, postID ident.Po
 		} else {
 			gid = uuid.NewString()
 			now := time.Now().UTC()
-			if err := tx.Create(&gormTranslationGroupRow{ID: gid, CreatedAt: now}).Error; err != nil {
+			if err := tx.Create(&postp.TranslationGroup{ID: gid, CreatedAt: now}).Error; err != nil {
 				return err
 			}
 		}
-		row := gormPostTranslationRowFull{PostID: string(postID), GroupID: gid, Locale: locale}
+		row := postp.PostTranslation{PostID: string(postID), GroupID: gid, Locale: locale}
 		if err := tx.Create(&row).Error; err != nil {
 			return err
 		}
@@ -1214,21 +1072,11 @@ func (r *GormRepository) PutPostTranslation(ctx context.Context, postID ident.Po
 }
 
 func (r *GormRepository) ClearPostTranslation(ctx context.Context, postID ident.PostID) error {
-	return r.db.WithContext(ctx).Where("post_id = ?", string(postID)).Delete(&gormPostTranslationRowFull{}).Error
+	return r.db.WithContext(ctx).Where("post_id = ?", string(postID)).Delete(&postp.PostTranslation{}).Error
 }
-
-type gormSeriesRow struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
-	Title     string    `gorm:"column:title;not null"`
-	Slug      string    `gorm:"column:slug;not null;uniqueIndex"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
-}
-
-func (gormSeriesRow) TableName() string { return "series" }
 
 func (r *GormRepository) ListSeries(ctx context.Context) ([]series.Series, error) {
-	var rows []gormSeriesRow
+	var rows []postp.Series
 	if err := r.db.WithContext(ctx).Order("created_at DESC").Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -1249,12 +1097,12 @@ func (r *GormRepository) CreateSeries(ctx context.Context, s *series.Series) err
 	}
 	s.CreatedAt = now
 	s.UpdatedAt = now
-	row := gormSeriesRow{ID: s.ID, Title: strings.TrimSpace(s.Title), Slug: strings.TrimSpace(s.Slug), CreatedAt: now, UpdatedAt: now}
+	row := postp.Series{ID: s.ID, Title: strings.TrimSpace(s.Title), Slug: strings.TrimSpace(s.Slug), CreatedAt: now, UpdatedAt: now}
 	return r.db.WithContext(ctx).Create(&row).Error
 }
 
 func (r *GormRepository) FindSeriesByID(ctx context.Context, id string) (*series.Series, error) {
-	var row gormSeriesRow
+	var row postp.Series
 	if err := r.db.WithContext(ctx).Where("id = ?", strings.TrimSpace(id)).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -1269,7 +1117,7 @@ func (r *GormRepository) UpdateSeries(ctx context.Context, s *series.Series) err
 		return errors.New("invalid_series")
 	}
 	now := time.Now().UTC()
-	res := r.db.WithContext(ctx).Model(&gormSeriesRow{}).
+	res := r.db.WithContext(ctx).Model(&postp.Series{}).
 		Where("id = ?", strings.TrimSpace(s.ID)).
 		Updates(map[string]any{
 			"title":      strings.TrimSpace(s.Title),
@@ -1286,7 +1134,7 @@ func (r *GormRepository) UpdateSeries(ctx context.Context, s *series.Series) err
 }
 
 func (r *GormRepository) DeleteSeries(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Where("id = ?", strings.TrimSpace(id)).Delete(&gormSeriesRow{}).Error
+	return r.db.WithContext(ctx).Where("id = ?", strings.TrimSpace(id)).Delete(&postp.Series{}).Error
 }
 
 func (r *GormRepository) CreateTranslationGroup(ctx context.Context, id string) error {
@@ -1295,19 +1143,19 @@ func (r *GormRepository) CreateTranslationGroup(ctx context.Context, id string) 
 		id = uuid.NewString()
 	}
 	now := time.Now().UTC()
-	return r.db.WithContext(ctx).Create(&gormTranslationGroupRow{ID: id, CreatedAt: now}).Error
+	return r.db.WithContext(ctx).Create(&postp.TranslationGroup{ID: id, CreatedAt: now}).Error
 }
 
 func (r *GormRepository) FindTranslationGroup(ctx context.Context, id string) (bool, error) {
 	var n int64
-	if err := r.db.WithContext(ctx).Model(&gormTranslationGroupRow{}).Where("id = ?", strings.TrimSpace(id)).Count(&n).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&postp.TranslationGroup{}).Where("id = ?", strings.TrimSpace(id)).Count(&n).Error; err != nil {
 		return false, err
 	}
 	return n > 0, nil
 }
 
 func (r *GormRepository) DeleteTranslationGroup(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Where("id = ?", strings.TrimSpace(id)).Delete(&gormTranslationGroupRow{}).Error
+	return r.db.WithContext(ctx).Where("id = ?", strings.TrimSpace(id)).Delete(&postp.TranslationGroup{}).Error
 }
 
 func parseIDString(raw string) int64 {

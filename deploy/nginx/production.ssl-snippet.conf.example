@@ -1,0 +1,40 @@
+# OPTIONAL: manual TLS for Nginx (no Certbot)
+#
+# Use only if you already have certificate and key files (commercial CA, internal PKI,
+# or files copied from another system). Most deployments should use Certbot instead;
+# see docs/DEPLOYMENT.md § TLS.
+#
+# Merge this pattern into your real server block (or duplicate the server: one for
+# :80 redirect, one for :443). Replace paths, server_name, upstream port, and uploads alias.
+#
+# After editing: sudo nginx -t && sudo systemctl reload nginx
+
+# Example: redirect HTTP to HTTPS
+# server {
+#     listen 80;
+#     server_name api.yourdomain.com;
+#     return 301 https://$host$request_uri;
+# }
+
+# Example: HTTPS terminator → Go upstream
+# server {
+#     listen 443 ssl http2;
+#     server_name api.yourdomain.com;
+#
+#     ssl_certificate     /etc/ssl/nextpresskit/fullchain.pem;
+#     ssl_certificate_key /etc/ssl/nextpresskit/privkey.pem;
+#
+#     location /uploads/ {
+#         alias /var/www/nextpresskit-backend-production/storage/uploads/;
+#         expires 30d;
+#         add_header Cache-Control "public, max-age=2592000";
+#     }
+#
+#     location / {
+#         proxy_pass         http://127.0.0.1:9090;
+#         proxy_set_header   Host $host;
+#         proxy_set_header   X-Real-IP $remote_addr;
+#         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header   X-Forwarded-Proto $scheme;
+#     }
+# }

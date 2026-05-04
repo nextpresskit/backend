@@ -1,6 +1,10 @@
 # ADRs (Architecture Decision Records)
 
+[← Documentation index](../README.md)
+
 Use this folder for significant technical decisions that have long-term impact.
+
+Keep ADRs short and decision-focused so future contributors can understand trade-offs quickly.
 
 Suggested file naming:
 - `0001-short-title.md`

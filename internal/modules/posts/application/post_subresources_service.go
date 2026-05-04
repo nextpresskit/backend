@@ -5,10 +5,10 @@ import (
 	"errors"
 	"strings"
 
-	posterr "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
+	posterr "github.com/nextpresskit/backend/internal/modules/posts/domain"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
 )
 
 // PostSubresourcesService validates and orchestrates post sub-resource persistence.

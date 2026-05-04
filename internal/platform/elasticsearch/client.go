@@ -9,7 +9,7 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v8"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
+	"github.com/nextpresskit/backend/internal/config"
 )
 
 // Ping checks cluster reachability (non-fatal at startup if it fails).

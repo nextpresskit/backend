@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+# NextPressKit — cross-platform dev entry (macOS / Linux / Git Bash on Windows).
+# Native Windows PowerShell: use scripts/nextpresskit.ps1
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+export NP_ROOT="$ROOT"
+export CGO_ENABLED="${CGO_ENABLED:-0}"
+
+VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+
+usage() {
+  cat <<'EOF'
+NextPressKit dev CLI (Linux / macOS / Git Bash). On Windows use: .\scripts\nextpresskit.ps1
+
+Commands:
+  help              Show this help
+  install           go mod download; create .env from .env.example if missing
+  tidy              go mod tidy
+  deps              go mod download only
+  build             Build bin/server only
+  build-all         Build bin/server, bin/migrate, bin/seed
+  setup             install + build-all + migrate-up + seed; from a TTY also runs
+                    scripts/setup-local-https.sh (install mkcert if needed, SANs + Nginx on Linux). Skip: SKIP_SETUP_LOCAL_HTTPS=1
+  migrate-up        Apply GORM AutoMigrate (internal/platform/dbmigrate)
+  migrate-down      Removed (no SQL migration steps); use migrate-drop + migrate-up for dev reset
+  migrate-version   Prints notice (no version table with AutoMigrate)
+  migrate-steps     Removed (no stepped SQL migrations)
+  migrate-drop      Drop all public tables (interactive; sets ALLOW_SCHEMA_DROP=1)
+  db-fresh            migrate-drop then migrate-up (destructive)
+  seed              Run seeders
+  run               Foreground API (go run)
+  start             Background API + .tmp/<APP_DEV_RUNTIME_BASENAME>-api.pid
+  stop              Stop background API + soft-clear same-repo listeners
+  deploy              Interactive Nginx/TLS wizard (bash scripts/deploy)
+  deploy-apply-nginx  Non-interactive: write Nginx config + install on Linux (see scripts/deploy apply-nginx --help)
+  checks            CI-style: test, vet, integration, OpenAPI, govulncheck
+  postman-sync      Seed gitignored postman/ from postman-templates/ if needed; refresh env JSON from .env (Python 3)
+  test | test-coverage | test-integration
+  security-check | graphql | clean
+
+Examples:
+  ./scripts/nextpresskit setup
+  ./scripts/nextpresskit run
+  ./scripts/nextpresskit postman-sync --dry-run
+  POSTMAN_DEV_BASE_URL=https://api.dev.example ./scripts/nextpresskit postman-sync
+EOF
+}
+
+ensure_go() {
+  command -v go >/dev/null 2>&1 || {
+    echo "Go is not installed or not on PATH." >&2
+    exit 1
+  }
+}
+
+cmd="${1:-help}"
+[[ "$cmd" == "-h" || "$cmd" == "--help" ]] && cmd=help
+
+case "$cmd" in
+help)
+  usage
+  ;;
+install)
+  ensure_go
+  go mod download
+  if [[ ! -f "$ROOT/.env" ]]; then
+    cp "$ROOT/.env.example" "$ROOT/.env"
+    echo "Created .env from .env.example — edit DB_* and JWT_SECRET before migrate/seed."
+  else
+    echo ".env already exists."
+  fi
+  ;;
+tidy)
+  ensure_go
+  go mod tidy
+  ;;
+deps)
+  ensure_go
+  go mod download
+  ;;
+build)
+  ensure_go
+  mkdir -p bin
+  go build -ldflags "-X main.version=$VERSION" -o bin/server ./cmd/api
+  echo "Built bin/server"
+  ;;
+build-all)
+  ensure_go
+  mkdir -p bin
+  go build -ldflags "-X main.version=$VERSION" -o bin/server ./cmd/api
+  go build -o bin/migrate ./cmd/migrate
+  go build -o bin/seed ./cmd/seed
+  echo "Built bin/server, bin/migrate, bin/seed"
+  ;;
+setup)
+  "$0" install
+  "$0" build-all
+  "$0" migrate-up
+  "$0" seed
+  uname_s="$(uname -s 2>/dev/null || echo unknown)"
+  case "$uname_s" in
+    MINGW*|MSYS*|CYGWIN*)
+      ;;
+    *)
+      if [[ -t 0 ]] && [[ "${SKIP_SETUP_LOCAL_HTTPS:-}" != "1" ]]; then
+        bash "$ROOT/scripts/setup-local-https.sh" || true
+      fi
+      ;;
+  esac
+  echo "Setup complete. Run: ./scripts/nextpresskit run   (or: make run)"
+  ;;
+migrate-up)
+  ensure_go
+  go run ./cmd/migrate -command=up
+  ;;
+migrate-down)
+  echo "migrate-down is removed: schema changes use GORM AutoMigrate (see docs/COMMANDS.md)." >&2
+  echo "For a dev reset: ./scripts/nextpresskit db-fresh" >&2
+  exit 1
+  ;;
+migrate-version)
+  echo "No migration version row: schema is owned by internal/platform/dbmigrate + cmd/migrate up." >&2
+  exit 0
+  ;;
+migrate-steps)
+  echo "migrate-steps is removed: there are no numbered SQL migrations." >&2
+  exit 1
+  ;;
+migrate-drop)
+  ensure_go
+  echo "WARNING: This drops all tables in the configured database."
+  read -r -p "Type y to continue: " confirm
+  [[ "${confirm:-N}" == "y" ]] || exit 1
+  ALLOW_SCHEMA_DROP=1 go run ./cmd/migrate -command=drop
+  ;;
+db-fresh)
+  "$0" migrate-drop
+  "$0" migrate-up
+  ;;
+seed)
+  ensure_go
+  go run ./cmd/seed
+  ;;
+run)
+  ensure_go
+  exec bash "$ROOT/scripts/dev-run.sh"
+  ;;
+start)
+  ensure_go
+  bash "$ROOT/scripts/dev-start.sh"
+  ;;
+stop)
+  bash "$ROOT/scripts/dev-stop.sh"
+  ;;
+deploy)
+  exec bash "$ROOT/scripts/deploy"
+  ;;
+deploy-apply-nginx)
+  shift
+  exec bash "$ROOT/scripts/deploy" apply-nginx "$@"
+  ;;
+checks)
+  ensure_go
+  go test ./...
+  go vet ./...
+  go test -tags=integration -v ./internal/platform/database
+  go run github.com/getkin/kin-openapi/cmd/validate@latest "$ROOT/docs/openapi.yaml"
+  go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+  ;;
+test)
+  ensure_go
+  exec go test -v ./...
+  ;;
+test-coverage)
+  ensure_go
+  exec go test -cover ./...
+  ;;
+test-integration)
+  ensure_go
+  exec go test -tags=integration -v ./internal/platform/database
+  ;;
+security-check)
+  ensure_go
+  exec go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+  ;;
+graphql)
+  ensure_go
+  exec go run github.com/99designs/gqlgen generate
+  ;;
+postman-sync)
+  command -v python3 >/dev/null 2>&1 || {
+    echo "python3 is required for postman-sync." >&2
+    exit 1
+  }
+  exec python3 "$ROOT/scripts/sync-postman.py" "${@:2}"
+  ;;
+clean)
+  rm -rf bin/
+  go clean
+  ;;
+*)
+  echo "Unknown command: $cmd" >&2
+  usage >&2
+  exit 1
+  ;;
+esac

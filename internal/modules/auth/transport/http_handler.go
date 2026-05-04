@@ -4,22 +4,27 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
-	userdomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
-	platformmw "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
+	"github.com/nextpresskit/backend/internal/config"
+	"github.com/nextpresskit/backend/internal/modules/auth/application"
+	userdomain "github.com/nextpresskit/backend/internal/modules/user/domain"
+	platformmw "github.com/nextpresskit/backend/internal/platform/middleware"
+	jwtcookie "github.com/nextpresskit/backend/internal/platform/jwtcookie"
 )
 
 type Handler struct {
 	svc            *application.Service
 	authMiddleware gin.HandlerFunc
+
+	jwtCfg config.JWTConfig
 }
 
-func NewHandler(svc *application.Service, authMiddleware gin.HandlerFunc) *Handler {
-	return &Handler{svc: svc, authMiddleware: authMiddleware}
+func NewHandler(svc *application.Service, authMiddleware gin.HandlerFunc, jwtCfg config.JWTConfig) *Handler {
+	return &Handler{svc: svc, authMiddleware: authMiddleware, jwtCfg: jwtCfg}
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
@@ -83,6 +88,14 @@ func (h *Handler) login(c *gin.Context) {
 		return
 	}
 
+	if strings.EqualFold(h.jwtCfg.AuthSource, "cookie") {
+		jwtcookie.SetAuthCookies(c.Writer, access, refresh, h.jwtCfg)
+		c.JSON(http.StatusOK, gin.H{
+			"user": userToJSON(u, relations),
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"tokens": gin.H{
 			"accessToken":  access,
@@ -93,17 +106,34 @@ func (h *Handler) login(c *gin.Context) {
 }
 
 type refreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (h *Handler) refresh(c *gin.Context) {
 	var req refreshRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// In cookie auth mode, the refresh token is read from cookies (request body may be empty).
+	if strings.EqualFold(h.jwtCfg.AuthSource, "header") || c.Request.ContentLength > 0 {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
+			return
+		}
+	}
+
+	refreshToken := strings.TrimSpace(req.RefreshToken)
+	if strings.EqualFold(h.jwtCfg.AuthSource, "cookie") {
+		if v, ok := jwtcookie.GetCookieValue(c.Request, h.jwtCfg.RefreshCookieName); ok {
+			refreshToken = v
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_refresh_token"})
+			return
+		}
+	}
+	if refreshToken == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
 		return
 	}
 
-	u, access, refresh, err := h.svc.Refresh(c.Request.Context(), req.RefreshToken)
+	u, access, refresh, err := h.svc.Refresh(c.Request.Context(), refreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_refresh_token"})
 		return
@@ -111,6 +141,14 @@ func (h *Handler) refresh(c *gin.Context) {
 	relations, err := h.svc.Relations(c.Request.Context(), fmt.Sprintf("%d", u.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+		return
+	}
+
+	if strings.EqualFold(h.jwtCfg.AuthSource, "cookie") {
+		jwtcookie.SetAuthCookies(c.Writer, access, refresh, h.jwtCfg)
+		c.JSON(http.StatusOK, gin.H{
+			"user": userToJSON(u, relations),
+		})
 		return
 	}
 
@@ -124,19 +162,40 @@ func (h *Handler) refresh(c *gin.Context) {
 }
 
 type logoutRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (h *Handler) logout(c *gin.Context) {
 	var req logoutRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// In cookie auth mode, the refresh token is read from cookies.
+	if strings.EqualFold(h.jwtCfg.AuthSource, "header") || c.Request.ContentLength > 0 {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
+			return
+		}
+	}
+
+	refreshToken := strings.TrimSpace(req.RefreshToken)
+	if strings.EqualFold(h.jwtCfg.AuthSource, "cookie") {
+		if v, ok := jwtcookie.GetCookieValue(c.Request, h.jwtCfg.RefreshCookieName); ok {
+			refreshToken = v
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_refresh_token"})
+			return
+		}
+	}
+	if refreshToken == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
 		return
 	}
 
-	if err := h.svc.Logout(c.Request.Context(), req.RefreshToken); err != nil {
+	if err := h.svc.Logout(c.Request.Context(), refreshToken); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_refresh_token"})
 		return
+	}
+
+	if strings.EqualFold(h.jwtCfg.AuthSource, "cookie") {
+		jwtcookie.ClearAuthCookies(c.Writer, h.jwtCfg)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Signed out."})

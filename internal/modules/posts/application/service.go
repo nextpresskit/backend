@@ -3,8 +3,8 @@ package application
 import (
 	"errors"
 
-	posterr "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ports"
+	posterr "github.com/nextpresskit/backend/internal/modules/posts/domain"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
 )
 
 var (

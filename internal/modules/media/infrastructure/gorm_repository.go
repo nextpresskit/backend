@@ -3,25 +3,11 @@ package infrastructure
 import (
 	"context"
 	"strconv"
-	"time"
 
-	mediaDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/domain"
+	mediaDomain "github.com/nextpresskit/backend/internal/modules/media/domain"
+	mediap "github.com/nextpresskit/backend/internal/modules/media/persistence"
 	"gorm.io/gorm"
 )
-
-type gormMedia struct {
-	ID           string    `gorm:"column:id;type:uuid;primaryKey"`
-	UploaderID   int64     `gorm:"column:uploader_id;not null;index"`
-	OriginalName string    `gorm:"column:original_name;not null"`
-	StorageName  string    `gorm:"column:storage_name;not null;uniqueIndex"`
-	MimeType     string    `gorm:"column:mime_type;not null"`
-	SizeBytes    int64     `gorm:"column:size_bytes;not null"`
-	StoragePath  string    `gorm:"column:storage_path;not null"`
-	PublicURL    string    `gorm:"column:public_url;not null"`
-	CreatedAt    time.Time `gorm:"column:created_at;not null"`
-}
-
-func (gormMedia) TableName() string { return "media" }
 
 type GormRepository struct {
 	db *gorm.DB
@@ -41,7 +27,7 @@ func (r *GormRepository) Create(ctx context.Context, m *mediaDomain.Media) error
 }
 
 func (r *GormRepository) FindByID(ctx context.Context, id mediaDomain.MediaID) (*mediaDomain.Media, error) {
-	var row gormMedia
+	var row mediap.Media
 	if err := r.db.WithContext(ctx).Where("id = ?", string(id)).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -52,7 +38,7 @@ func (r *GormRepository) FindByID(ctx context.Context, id mediaDomain.MediaID) (
 }
 
 func (r *GormRepository) List(ctx context.Context, limit, offset int) ([]mediaDomain.Media, error) {
-	var rows []gormMedia
+	var rows []mediap.Media
 	if err := r.db.WithContext(ctx).Order("created_at DESC").Limit(limit).Offset(offset).Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -64,7 +50,7 @@ func (r *GormRepository) List(ctx context.Context, limit, offset int) ([]mediaDo
 	return out, nil
 }
 
-func toDomain(m *gormMedia) *mediaDomain.Media {
+func toDomain(m *mediap.Media) *mediaDomain.Media {
 	return &mediaDomain.Media{
 		ID:           mediaDomain.MediaID(m.ID),
 		UploaderID:   strconv.FormatInt(m.UploaderID, 10),
@@ -78,8 +64,8 @@ func toDomain(m *gormMedia) *mediaDomain.Media {
 	}
 }
 
-func fromDomain(m *mediaDomain.Media) *gormMedia {
-	return &gormMedia{
+func fromDomain(m *mediaDomain.Media) *mediap.Media {
+	return &mediap.Media{
 		ID:           string(m.ID),
 		UploaderID:   parseInt64OrZero(m.UploaderID),
 		OriginalName: m.OriginalName,

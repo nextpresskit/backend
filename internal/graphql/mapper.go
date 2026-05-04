@@ -3,11 +3,11 @@ package graphql
 import (
 	"time"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/model"
-	userdomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
-	pagedomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/domain"
-	domainmodel "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/model"
-	taxdomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/domain"
+	"github.com/nextpresskit/backend/internal/graphql/model"
+	userdomain "github.com/nextpresskit/backend/internal/modules/user/domain"
+	pagedomain "github.com/nextpresskit/backend/internal/modules/pages/domain"
+	domainmodel "github.com/nextpresskit/backend/internal/modules/posts/domain/model"
+	taxdomain "github.com/nextpresskit/backend/internal/modules/taxonomy/domain"
 )
 
 func domainPageToGQL(p *pagedomain.Page) *model.Page {

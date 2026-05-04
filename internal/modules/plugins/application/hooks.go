@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	pluginsDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/domain"
-	postPorts "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ports"
+	pluginsDomain "github.com/nextpresskit/backend/internal/modules/plugins/domain"
+	postPorts "github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
 )
 
 // HookRegistry is the in-process registry for hook invocations.

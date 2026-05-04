@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	rbacDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/domain"
+	rbacDomain "github.com/nextpresskit/backend/internal/modules/rbac/domain"
 )
 
 func RequirePermission(checker rbacDomain.PermissionChecker, permissionCode string) gin.HandlerFunc {

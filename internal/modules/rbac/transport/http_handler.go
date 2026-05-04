@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	rbacApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/application"
+	rbacApp "github.com/nextpresskit/backend/internal/modules/rbac/application"
 )
 
 type Handler struct {

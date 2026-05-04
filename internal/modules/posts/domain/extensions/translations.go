@@ -3,7 +3,7 @@ package extensions
 import (
 	"context"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
 )
 
 // PostTranslationsStore manages post_translations and translation group linkage.

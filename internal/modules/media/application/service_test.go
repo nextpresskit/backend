@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	mediaDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/domain"
+	mediaDomain "github.com/nextpresskit/backend/internal/modules/media/domain"
 )
 
 type mediaRepoStub struct {

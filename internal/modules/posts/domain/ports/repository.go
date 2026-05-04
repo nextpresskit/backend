@@ -1,11 +1,11 @@
 package ports
 
 import (
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/extensions"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/metrics"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/relations"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/seo"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/series"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/extensions"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/relations"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/seo"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/series"
 )
 
 // Repository is the composed persistence port for the posts module.

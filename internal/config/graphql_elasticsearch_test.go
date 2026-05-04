@@ -40,7 +40,7 @@ func TestLoadAppConfig_NormalizesAPIBasePath(t *testing.T) {
 func TestLoadElasticsearchConfig_Defaults(t *testing.T) {
 	t.Setenv("ELASTICSEARCH_ENABLED", "false")
 	t.Setenv("ELASTICSEARCH_URLS", "")
-	t.Setenv("ELASTICSEARCH_INDEX_PREFIX", "nextpress")
+	t.Setenv("ELASTICSEARCH_INDEX_PREFIX", "nextpresskit")
 	t.Setenv("ELASTICSEARCH_API_KEY", "")
 	t.Setenv("ELASTICSEARCH_USERNAME", "")
 	t.Setenv("ELASTICSEARCH_PASSWORD", "")
@@ -50,7 +50,7 @@ func TestLoadElasticsearchConfig_Defaults(t *testing.T) {
 	if c.Enabled {
 		t.Fatal("expected disabled")
 	}
-	if c.IndexPrefix != "nextpress" {
+	if c.IndexPrefix != "nextpresskit" {
 		t.Fatalf("IndexPrefix: %q", c.IndexPrefix)
 	}
 	if c.AutoCreateIndex {

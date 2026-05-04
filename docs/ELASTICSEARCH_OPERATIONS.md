@@ -1,6 +1,14 @@
 # Elasticsearch operations runbook
 
-Operational guidance for running NextPress search in production-like environments.
+[← Documentation index](README.md) · [Command reference](COMMANDS.md)
+
+Operational guidance for running NextPressKit search in production-like environments.
+
+## Quick start (local/dev)
+
+1. Set `ELASTICSEARCH_ENABLED=true` and `ELASTICSEARCH_URLS=...` in `.env`.
+2. Run the API (`make run` or `./scripts/nextpresskit run`).
+3. Use `GET /posts/search` and admin reindex `POST /admin/posts/search/reindex` when needed.
 
 Scope:
 - Index templates and mappings strategy
@@ -14,7 +22,7 @@ Related docs: [Local development](deployment/local.md) · [Deployment](DEPLOYMEN
 ## Current behavior (as implemented)
 
 - Elasticsearch is optional; PostgreSQL remains source of truth.
-- The posts index name is `<ELASTICSEARCH_INDEX_PREFIX>_posts` (default prefix `nextpress`).
+- The posts index name is `<ELASTICSEARCH_INDEX_PREFIX>_posts` (default prefix `nextpresskit`; see `.env.example`).
 - When enabled, indexing happens on post save and on scheduled publish promotion.
 - Public search route: `GET /posts/search`
 - Admin reindex route: `POST /admin/posts/search/reindex` (`posts:write`)
@@ -28,7 +36,7 @@ Related docs: [Local development](deployment/local.md) · [Deployment](DEPLOYMEN
 Minimum:
 - `ELASTICSEARCH_ENABLED=true`
 - `ELASTICSEARCH_URLS=https://es-node-1:9200,https://es-node-2:9200`
-- `ELASTICSEARCH_INDEX_PREFIX=nextpress`
+- `ELASTICSEARCH_INDEX_PREFIX=nextpresskit`
 
 Auth (choose one):
 - API key: `ELASTICSEARCH_API_KEY=...`
@@ -44,13 +52,13 @@ TLS:
 
 The app currently creates index mappings directly when auto-create is enabled. For production, prefer explicit templates:
 
-1. Create a composable template for `nextpress*_posts*` (or your prefix pattern).
+1. Create a composable template for `nextpresskit*_posts*` (or your prefix pattern).
 2. Keep fields used by app code compatible:
    - `id`: `keyword`
    - `title`, `excerpt`, `content`: `text`
    - `slug`, `status`: `keyword`
    - `published_at`: `date`
-3. Version template changes with semantic names (example: `nextpress-posts-v1`, `v2`).
+3. Version template changes with semantic names (example: `nextpresskit-posts-v1`, `v2`).
 4. Roll template updates in staging first, then production.
 
 Rule: do not deploy mapping changes without a reindex plan.
@@ -62,7 +70,7 @@ Rule: do not deploy mapping changes without a reindex plan.
 Use this when upgrading Elasticsearch major versions, changing analyzers, or changing mapping semantics.
 
 1. Prepare target index
-   - New index name with version suffix (example: `nextpress_posts_v2`)
+   - New index name with version suffix (example: `nextpresskit_posts_v2`)
    - Apply desired settings/mappings/template
 2. Reindex data
    - Trigger app-level repopulation via `POST /admin/posts/search/reindex`

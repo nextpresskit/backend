@@ -3,25 +3,11 @@ package infrastructure
 import (
 	"context"
 	"encoding/json"
-	"time"
 
-	pluginsDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/domain"
+	pluginsDomain "github.com/nextpresskit/backend/internal/modules/plugins/domain"
+	pluginp "github.com/nextpresskit/backend/internal/modules/plugins/persistence"
 	"gorm.io/gorm"
 )
-
-type gormPlugin struct {
-	ID        string `gorm:"column:id;type:uuid;primaryKey"`
-	Name      string `gorm:"column:name;not null;uniqueIndex"`
-	Slug      string `gorm:"column:slug;not null;uniqueIndex"`
-	Enabled   bool   `gorm:"column:enabled;not null"`
-	Version   string `gorm:"column:version;not null"`
-	ConfigRaw []byte `gorm:"column:config;type:jsonb;not null"`
-
-	CreatedAt time.Time      `gorm:"column:created_at;not null"`
-	UpdatedAt time.Time      `gorm:"column:updated_at;not null"`
-}
-
-func (gormPlugin) TableName() string { return "plugins" }
 
 type GormRepository struct {
 	db *gorm.DB
@@ -37,7 +23,7 @@ func (r *GormRepository) Create(ctx context.Context, plugin *pluginsDomain.Plugi
 		return err
 	}
 
-	m := gormPlugin{
+	m := pluginp.Plugin{
 		ID:        string(plugin.ID),
 		Name:      plugin.Name,
 		Slug:      plugin.Slug,
@@ -57,7 +43,7 @@ func (r *GormRepository) Create(ctx context.Context, plugin *pluginsDomain.Plugi
 }
 
 func (r *GormRepository) FindByID(ctx context.Context, id pluginsDomain.PluginID) (*pluginsDomain.Plugin, error) {
-	var row gormPlugin
+	var row pluginp.Plugin
 	if err := r.db.WithContext(ctx).
 		Where("id = ?", string(id)).
 		First(&row).Error; err != nil {
@@ -71,7 +57,7 @@ func (r *GormRepository) FindByID(ctx context.Context, id pluginsDomain.PluginID
 }
 
 func (r *GormRepository) FindBySlug(ctx context.Context, slug string) (*pluginsDomain.Plugin, error) {
-	var row gormPlugin
+	var row pluginp.Plugin
 	if err := r.db.WithContext(ctx).
 		Where("slug = ?", slug).
 		First(&row).Error; err != nil {
@@ -85,9 +71,9 @@ func (r *GormRepository) FindBySlug(ctx context.Context, slug string) (*pluginsD
 }
 
 func (r *GormRepository) List(ctx context.Context) ([]pluginsDomain.Plugin, error) {
-	var rows []gormPlugin
+	var rows []pluginp.Plugin
 	if err := r.db.WithContext(ctx).
-		Model(&gormPlugin{}).
+		Model(&pluginp.Plugin{}).
 		Order("created_at DESC").
 		Find(&rows).Error; err != nil {
 		return nil, err
@@ -101,9 +87,9 @@ func (r *GormRepository) List(ctx context.Context) ([]pluginsDomain.Plugin, erro
 }
 
 func (r *GormRepository) ListEnabled(ctx context.Context) ([]pluginsDomain.Plugin, error) {
-	var rows []gormPlugin
+	var rows []pluginp.Plugin
 	if err := r.db.WithContext(ctx).
-		Model(&gormPlugin{}).
+		Model(&pluginp.Plugin{}).
 		Where("enabled = ?", true).
 		Order("created_at DESC").
 		Find(&rows).Error; err != nil {
@@ -133,12 +119,12 @@ func (r *GormRepository) Update(ctx context.Context, plugin *pluginsDomain.Plugi
 	}
 
 	return r.db.WithContext(ctx).
-		Model(&gormPlugin{}).
+		Model(&pluginp.Plugin{}).
 		Where("id = ?", string(plugin.ID)).
 		Updates(updates).Error
 }
 
-func toDomain(m *gormPlugin) *pluginsDomain.Plugin {
+func toDomain(m *pluginp.Plugin) *pluginsDomain.Plugin {
 	cfg := map[string]any{}
 	if len(m.ConfigRaw) > 0 {
 		_ = json.Unmarshal(m.ConfigRaw, &cfg)

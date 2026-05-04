@@ -1,0 +1,4 @@
+# Normalize line endings in the repo (avoids CRLF vs LF noise on Windows/macOS/Linux).
+* text=auto
+
+*.md text eol=lf

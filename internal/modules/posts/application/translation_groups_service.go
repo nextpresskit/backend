@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	posterr "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/extensions"
+	posterr "github.com/nextpresskit/backend/internal/modules/posts/domain"
+	"github.com/nextpresskit/backend/internal/modules/posts/domain/extensions"
 )
 
 // TranslationGroupsService manages translation_groups rows.

@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
+	"github.com/nextpresskit/backend/internal/config"
 )
 
 // Server wraps the underlying http.Server and carries the core dependencies

@@ -1,7 +1,14 @@
 openapi: 3.0.3
 info:
-  title: nextpress-backend API
+  title: NextPressKit API
   version: "0.1.0-phase4"
+  description: |
+    Authentication supports two modes (configure with `JWT_AUTH_SOURCE` on the server):
+
+    - **cookie** (default): access and refresh tokens are HttpOnly cookies (`JWT_ACCESS_COOKIE_NAME`, `JWT_REFRESH_COOKIE_NAME`, default `access_token` / `refresh_token`). Login and refresh responses return `user` only; browsers send cookies automatically when `CORS_ORIGINS` is set and the client uses credentials.
+    - **header**: tokens are returned in JSON on login/refresh; send `Authorization: Bearer <access_jwt>` on protected routes.
+
+    Protected routes accept **either** Bearer JWT **or** the access-token cookie (when the server is in cookie mode and the client sends cookies).
 servers:
   - url: /
 tags:
@@ -16,6 +23,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: Access JWT in HttpOnly cookie (default cookie name; override with `JWT_ACCESS_COOKIE_NAME`).
   schemas:
     errorResponse:
       type: object
@@ -59,16 +71,19 @@ components:
 
     authTokensWithUser:
       type: object
+      description: |
+        When `JWT_AUTH_SOURCE=cookie` (default), login/refresh responses omit `tokens` and set cookies instead.
+        When `JWT_AUTH_SOURCE=header`, `tokens` is present with access and refresh JWT strings.
       properties:
         tokens:
           type: object
+          nullable: true
           properties:
             accessToken: { type: string }
             refreshToken: { type: string }
-          required: [accessToken, refreshToken]
         user:
           $ref: "#/components/schemas/authUserPublic"
-      required: [tokens, user]
+      required: [user]
 
     post:
       type: object
@@ -313,7 +328,14 @@ paths:
               required: [email, password]
       responses:
         "200":
-          description: access and refresh tokens plus current user profile
+          description: |
+            Current user profile. In cookie mode, also sets HttpOnly `access_token` and `refresh_token` cookies.
+            In header mode, includes `tokens.accessToken` and `tokens.refreshToken` in the JSON body.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Present when `JWT_AUTH_SOURCE=cookie` (may appear twice for access and refresh cookies).
           content:
             application/json:
               schema:
@@ -330,6 +352,7 @@ paths:
       tags: [auth]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       summary: Current user from access token
       responses:
         "200":
@@ -343,7 +366,7 @@ paths:
                     $ref: "#/components/schemas/authUserPublic"
                 required: [user]
         "401":
-          description: missing or invalid bearer token
+          description: missing or invalid access token (Bearer or access cookie, depending on server config)
           content:
             application/json:
               schema:
@@ -359,17 +382,23 @@ paths:
     post:
       tags: [auth]
       requestBody:
-        required: true
+        required: false
+        description: Required when `JWT_AUTH_SOURCE=header`. Omit body in cookie mode (refresh token is read from the `refresh_token` cookie).
         content:
           application/json:
             schema:
               type: object
               properties:
                 refresh_token: { type: string }
-              required: [refresh_token]
       responses:
         "200":
-          description: new token pair plus current user profile
+          description: |
+            Current user profile. In cookie mode, rotates HttpOnly cookies. In header mode, includes new `tokens` in JSON.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Present when `JWT_AUTH_SOURCE=cookie`.
           content:
             application/json:
               schema:
@@ -385,17 +414,22 @@ paths:
     post:
       tags: [auth]
       requestBody:
-        required: true
+        required: false
+        description: Required when `JWT_AUTH_SOURCE=header`. Omit body in cookie mode.
         content:
           application/json:
             schema:
               type: object
               properties:
                 refresh_token: { type: string }
-              required: [refresh_token]
       responses:
         "200":
-          description: logout accepted
+          description: Logout accepted; in cookie mode clears auth cookies.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Present when `JWT_AUTH_SOURCE=cookie` (clears cookies).
           content:
             application/json:
               schema:
@@ -546,6 +580,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: ok
@@ -574,6 +609,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:read`
       parameters:
         - in: query
@@ -608,6 +644,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       requestBody:
         required: true
@@ -639,6 +676,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Rebuilds the Elasticsearch index for all published posts. Requires `posts:write` and ELASTICSEARCH_ENABLED; returns 501 when search is disabled.
       responses:
         "200":
@@ -680,6 +718,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:read`
       parameters:
         - in: path
@@ -703,6 +742,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -750,6 +790,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -772,6 +813,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: "Requires `posts:write`. Default response is `{ok: true}`. Use query `expand=post` to return the full post object (same shape as GET /admin/posts/{id})."
       parameters:
         - in: path
@@ -812,6 +854,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: "Requires `posts:write`. Default `{ok: true}`; optional `expand=post` returns full post."
       parameters:
         - in: path
@@ -851,6 +894,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -879,6 +923,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:read`. Returns metrics row if present.
       parameters:
         - in: path
@@ -906,6 +951,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -933,6 +979,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:read`
       parameters:
         - in: path
@@ -952,6 +999,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -976,6 +1024,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -995,6 +1044,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -1021,6 +1071,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`. Omit or null `seriesId` to unlink.
       parameters:
         - in: path
@@ -1049,6 +1100,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:read`
       parameters:
         - in: path
@@ -1072,6 +1124,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -1102,6 +1155,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -1137,6 +1191,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       parameters:
         - in: path
@@ -1164,6 +1219,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1186,6 +1242,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`. Defaults `userId` to the caller when omitted.
       parameters:
         - in: path
@@ -1219,6 +1276,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1241,6 +1299,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1274,6 +1333,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1300,6 +1360,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1322,6 +1383,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`. Creates a translation group if `groupId` is omitted.
       parameters:
         - in: path
@@ -1353,6 +1415,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Clears this post's translation row.
       parameters:
         - in: path
@@ -1372,6 +1435,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`. Updates by syndication row id (any post).
       parameters:
         - in: path
@@ -1397,6 +1461,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1417,6 +1482,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:read`
       responses:
         "200":
@@ -1435,6 +1501,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`
       requestBody:
         required: true
@@ -1460,6 +1527,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1483,6 +1551,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1508,6 +1577,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Use query `expand=series` to include a snapshot of the deleted series in the response.
       parameters:
         - in: path
@@ -1545,6 +1615,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:write`. Empty body generates an id; optional `id` to use a specific UUID.
       requestBody:
         content:
@@ -1574,6 +1645,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `posts:read`
       parameters:
         - in: path
@@ -1599,6 +1671,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1619,6 +1692,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `pages:read`
       responses:
         "200":
@@ -1637,6 +1711,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `pages:write`
       requestBody:
         required: true
@@ -1662,6 +1737,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `pages:read`
       parameters:
         - in: path
@@ -1679,6 +1755,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `pages:write`
       parameters:
         - in: path
@@ -1692,6 +1769,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -1706,6 +1784,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `categories:read`
       responses:
         "200":
@@ -1724,6 +1803,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `categories:write`
       responses:
         "200":
@@ -1738,6 +1818,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `categories:write`
       responses:
         "200":
@@ -1746,6 +1827,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Category deleted
@@ -1755,6 +1837,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `tags:read`
       responses:
         "200":
@@ -1763,6 +1846,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `tags:write`
       responses:
         "200":
@@ -1777,6 +1861,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Tag updated
@@ -1784,6 +1869,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Tag deleted
@@ -1793,6 +1879,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `media:read`
       responses:
         "200":
@@ -1811,6 +1898,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `media:write` (multipart upload, form field `file`)
       requestBody:
         required: true
@@ -1836,6 +1924,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `media:read`
       parameters:
         - in: path
@@ -1859,6 +1948,7 @@ paths:
         and it assigns the seeded admin role to the current user.
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: ok
@@ -1876,6 +1966,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Roles list
@@ -1883,6 +1974,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Role created
@@ -1891,6 +1983,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Permissions list
@@ -1898,6 +1991,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Permission created
@@ -1911,6 +2005,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Permissions assigned to role
@@ -1924,6 +2019,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       responses:
         "200":
           description: Roles assigned to user
@@ -1933,6 +2029,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `plugins:manage`
       responses:
         "200":
@@ -1951,6 +2048,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `plugins:manage`
       requestBody:
         required: true
@@ -1980,6 +2078,7 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+        - cookieAuth: []
       description: Requires `plugins:manage`
       parameters:
         - in: path

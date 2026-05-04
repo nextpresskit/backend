@@ -1,20 +1,22 @@
 # TODO (full checklist)
 
-**`[x]`** = shipped · **`[ ]`** = still open. [`ROADMAP.md`](ROADMAP.md) · [`CONTRIBUTING.md`](../CONTRIBUTING.md) · [`openapi.yaml`](openapi.yaml)
+**`[x]`** = shipped · **`[ ]`** = still open. [Documentation index](README.md) · [`ROADMAP.md`](ROADMAP.md) · [`CONTRIBUTING.md`](../CONTRIBUTING.md) · [`openapi.yaml`](openapi.yaml)
+
+Use this as the source-of-truth checklist for work tracking.
 
 ---
 
 ## Platform & tooling
 
 - [x] Go API entrypoint (`cmd/api`)
-- [x] SQL migrations runner (`cmd/migrate`, `pkg/migrate`)
+- [x] Database schema (`cmd/migrate`, AutoMigrate in `internal/platform/dbmigrate`, models in `internal/modules/*/persistence`)
 - [x] Seed runner (`cmd/seed`)
 - [x] Makefile targets (`build`, `run`, `migrate-*`, `seed`, `graphql`, …)
 - [x] Environment loading (`.env` / `.env.example`)
 - [x] Structured logging (zap)
 - [x] Request ID middleware
 - [x] In-memory rate limiting (public / auth / admin groups)
-- [x] Deployment script (`scripts/deploy`)
+- [x] Interactive deploy wizard (`scripts/deploy`, `scripts/deploy.ps1`)
 - [x] Nginx + systemd templates (`deploy/`)
 - [x] Local run helper (`scripts/run_local.sh`)
 
@@ -113,7 +115,7 @@
 - [x] Playground when `APP_ENV` local/dev and flag on
 - [x] Public read parity slice: `categories`, `tags`, `searchPosts(q)` queries
 - [x] Auth mutation parity slice: `register`, `login`, `refresh`
-- [ ] **Parity** with REST: categories, tags, search, mutations, auth, admin types - as you define scope
+- [x] **Parity (defined scope)** with REST for public/auth slices: categories, tags, search, `register/login/refresh`, taxonomy mutations (`create/update/delete` category/tag); admin GraphQL types remain out-of-scope (REST-first)
 - [x] Document intended GraphQL vs REST split in [`README.md`](README.md) (docs index) or an ADR
 
 ---

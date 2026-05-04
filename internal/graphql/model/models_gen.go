@@ -3,8 +3,8 @@
 package model
 
 type AuthTokens struct {
-	AccessToken  string    `json:"accessToken"`
-	RefreshToken string    `json:"refreshToken"`
+	AccessToken  *string   `json:"accessToken,omitempty"`
+	RefreshToken *string   `json:"refreshToken,omitempty"`
 	User         *AuthUser `json:"user"`
 }
 
@@ -21,6 +21,16 @@ type AuthUser struct {
 
 type Category struct {
 	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+type CreateCategoryInput struct {
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+type CreateTagInput struct {
 	Name string `json:"name"`
 	Slug string `json:"slug"`
 }
@@ -58,7 +68,7 @@ type Query struct {
 }
 
 type RefreshInput struct {
-	RefreshToken string `json:"refreshToken"`
+	RefreshToken *string `json:"refreshToken,omitempty"`
 }
 
 type RegisterInput struct {
@@ -72,4 +82,16 @@ type Tag struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
+}
+
+type UpdateCategoryInput struct {
+	ID   string  `json:"id"`
+	Name *string `json:"name,omitempty"`
+	Slug *string `json:"slug,omitempty"`
+}
+
+type UpdateTagInput struct {
+	ID   string  `json:"id"`
+	Name *string `json:"name,omitempty"`
+	Slug *string `json:"slug,omitempty"`
 }

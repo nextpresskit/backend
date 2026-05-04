@@ -1,6 +1,10 @@
 # Security and hardening
 
-Practical baseline guidance for secure operation of NextPress.
+[← Documentation index](README.md) · [`.env.example`](../.env.example) (JWT / CORS vars) · [Command reference](COMMANDS.md)
+
+Practical baseline guidance for secure operation of NextPressKit.
+
+For a local-first setup flow, start with [`deployment/local.md`](deployment/local.md), then return here to harden settings.
 
 ## Dependency and CVE review
 
@@ -25,6 +29,24 @@ Operational notes:
 - When `CORS_ORIGINS` is set, credentials are allowed and response headers are constrained.
 - When unset, wildcard behavior is enabled and browser credentials are incompatible by design.
 - Prefer terminating public traffic through Nginx and applying TLS before the app.
+
+## JWT delivery: cookies vs Authorization header
+
+The API reads the access JWT from either HttpOnly cookies or the `Authorization: Bearer` header, depending on **`JWT_AUTH_SOURCE`** (see [`.env.example`](../.env.example)):
+
+| Mode | Access token | Refresh token | Login/refresh JSON |
+|------|----------------|---------------|---------------------|
+| `cookie` (default) | `JWT_ACCESS_COOKIE_NAME` (default `access_token`) | `JWT_REFRESH_COOKIE_NAME` (default `refresh_token`) | `user` only; tokens are not returned in the body |
+| `header` | Client sends `Authorization: Bearer <jwt>` | Client stores refresh from JSON and sends it on `POST /auth/refresh` | `tokens` + `user` |
+
+Cross-site browser flows (SPA on a different origin than the API) require:
+
+- `CORS_ORIGINS` set to the exact frontend origin(s), and the client must use **`credentials: 'include'`** (or equivalent).
+- Cookie attributes aligned with that deployment: defaults use **`SameSite=None`** and **`Secure`** (see `JWT_COOKIE_*` in `.env.example`).
+
+**HTTPS at the browser:** those defaults mean the browser must reach the API over **`https://`** (Nginx + Let’s Encrypt on servers, or **mkcert** locally) for cookies to work in cross-site flows. See [deployment/local.md](deployment/local.md) (local HTTPS, HTTP-only dev options) and [DEPLOYMENT.md § TLS](DEPLOYMENT.md#4-tls-https).
+
+Postman and other non-browser clients can use **cookie mode** (cookie jar after login) or **header mode**; see [`postman-templates/README.md`](../postman-templates/README.md).
 
 ## Rate-limit tuning and abuse tests
 

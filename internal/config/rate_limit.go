@@ -29,7 +29,7 @@ func LoadRateLimitConfig() RateLimitConfig {
 		RedisAddr:         GetEnv("RATE_LIMIT_REDIS_ADDR", ""),
 		RedisPassword:     GetEnv("RATE_LIMIT_REDIS_PASSWORD", ""),
 		RedisDB:           parseInt(GetEnv("RATE_LIMIT_REDIS_DB", "0"), 0),
-		RedisPrefix:       GetEnv("RATE_LIMIT_REDIS_PREFIX", "nextpress:ratelimit"),
+		RedisPrefix:       GetEnv("RATE_LIMIT_REDIS_PREFIX", "nextpresskit:ratelimit"),
 	}
 }
 

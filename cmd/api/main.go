@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -15,38 +17,38 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/config"
-	gqlapi "github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/generated"
-	platformDatabase "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/database"
-	platformES "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/elasticsearch"
-	platformLogger "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/logger"
-	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/server"
+	"github.com/nextpresskit/backend/internal/config"
+	gqlapi "github.com/nextpresskit/backend/internal/graphql"
+	"github.com/nextpresskit/backend/internal/graphql/generated"
+	platformDatabase "github.com/nextpresskit/backend/internal/platform/database"
+	platformES "github.com/nextpresskit/backend/internal/platform/elasticsearch"
+	platformLogger "github.com/nextpresskit/backend/internal/platform/logger"
+	platformMiddleware "github.com/nextpresskit/backend/internal/platform/middleware"
+	"github.com/nextpresskit/backend/internal/server"
 
-	authApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
-	authInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/infrastructure"
-	authTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/transport"
-	mediaApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/application"
-	mediaInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/infrastructure"
-	mediaTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/transport"
-	pluginsApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/application"
-	pluginsInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/infrastructure"
-	pluginsTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/plugins/transport"
-	pagesApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/application"
-	pagesInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/infrastructure"
-	pagesTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/transport"
-	postsApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
-	postsIdent "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/domain/ident"
-	postsInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/infrastructure"
-	postsTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/transport"
-	rbacApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/application"
-	rbacInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/infrastructure"
-	rbacTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/rbac/transport"
-	taxApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/application"
-	taxInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/infrastructure"
-	taxTransport "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/transport"
-	userInfra "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/infrastructure"
+	authApp "github.com/nextpresskit/backend/internal/modules/auth/application"
+	authInfra "github.com/nextpresskit/backend/internal/modules/auth/infrastructure"
+	authTransport "github.com/nextpresskit/backend/internal/modules/auth/transport"
+	mediaApp "github.com/nextpresskit/backend/internal/modules/media/application"
+	mediaInfra "github.com/nextpresskit/backend/internal/modules/media/infrastructure"
+	mediaTransport "github.com/nextpresskit/backend/internal/modules/media/transport"
+	pluginsApp "github.com/nextpresskit/backend/internal/modules/plugins/application"
+	pluginsInfra "github.com/nextpresskit/backend/internal/modules/plugins/infrastructure"
+	pluginsTransport "github.com/nextpresskit/backend/internal/modules/plugins/transport"
+	pagesApp "github.com/nextpresskit/backend/internal/modules/pages/application"
+	pagesInfra "github.com/nextpresskit/backend/internal/modules/pages/infrastructure"
+	pagesTransport "github.com/nextpresskit/backend/internal/modules/pages/transport"
+	postsApp "github.com/nextpresskit/backend/internal/modules/posts/application"
+	postsIdent "github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
+	postsInfra "github.com/nextpresskit/backend/internal/modules/posts/infrastructure"
+	postsTransport "github.com/nextpresskit/backend/internal/modules/posts/transport"
+	rbacApp "github.com/nextpresskit/backend/internal/modules/rbac/application"
+	rbacInfra "github.com/nextpresskit/backend/internal/modules/rbac/infrastructure"
+	rbacTransport "github.com/nextpresskit/backend/internal/modules/rbac/transport"
+	taxApp "github.com/nextpresskit/backend/internal/modules/taxonomy/application"
+	taxInfra "github.com/nextpresskit/backend/internal/modules/taxonomy/infrastructure"
+	taxTransport "github.com/nextpresskit/backend/internal/modules/taxonomy/transport"
+	userInfra "github.com/nextpresskit/backend/internal/modules/user/infrastructure"
 )
 
 var version = "dev"
@@ -56,6 +58,8 @@ func main() {
 	// straightforward to propagate graceful shutdown signals to all subsystems.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	config.LoadEnv()
 
 	// Initialize structured logging as early as possible so we can rely on a
 	// consistent, production-ready logger for all subsequent operations.
@@ -68,14 +72,11 @@ func main() {
 		_ = l.Sync()
 	}(baseLogger)
 
-	logger.Infow("starting nextpress-backend",
+	appCfg := config.LoadAppConfig()
+	logger.Infow("starting",
+		"service", appCfg.LogIdentifier,
 		"version", version,
 	)
-
-	// Load environment variables (from .env if present) and app configuration
-	// before touching any external resources (DB, message buses, etc.).
-	config.LoadEnv()
-	appCfg := config.LoadAppConfig()
 	dbCfg := config.LoadDBConfig()
 	jwtCfg := config.LoadJWTConfig()
 	rbacCfg := config.LoadRBACConfig()
@@ -107,7 +108,7 @@ func main() {
 	jwtProvider := authInfra.NewJWTProvider(jwtCfg.Secret, jwtCfg.AccessTTL, jwtCfg.RefreshTTL)
 	authService := authApp.NewService(userRepo, jwtProvider, passwordHasher)
 	authService.SetRBACReader(rbacInfra.NewGormRepository(db))
-	authHandler := authTransport.NewHandler(authService, platformMiddleware.AuthRequired(jwtProvider))
+	authHandler := authTransport.NewHandler(authService, platformMiddleware.AuthRequired(jwtProvider, jwtCfg), jwtCfg)
 	permissionChecker := rbacInfra.NewGormPermissionChecker(db)
 	rbacRepo := rbacInfra.NewGormRepository(db)
 	rbacService := rbacApp.NewService(rbacRepo)
@@ -304,35 +305,35 @@ UPDATE posts
 		engine.StaticFS(mediaCfg.PublicBaseURL, gin.Dir(mediaCfg.StorageDir, false))
 	}
 
-	// Admin/content APIs (Phase 3-4): protected, used by CMS/admin UI.
+	// Admin/content APIs (Phase 3-4): protected, used by admin clients and backends.
 	admin := api.Group("/admin")
 	// Rate limit is applied before auth so abuse without valid tokens is also
 	// throttled.
-	admin.Use(adminLimiter.Middleware("admin"), platformMiddleware.AuthRequired(jwtProvider))
+	admin.Use(adminLimiter.Middleware("admin"), platformMiddleware.AuthRequired(jwtProvider, jwtCfg))
 
 	postsHandler.RegisterRoutes(
 		admin,
-		platformMiddleware.AuthRequired(jwtProvider),
+		platformMiddleware.AuthRequired(jwtProvider, jwtCfg),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
 	pagesHandler.RegisterRoutes(
 		admin,
-		platformMiddleware.AuthRequired(jwtProvider),
+		platformMiddleware.AuthRequired(jwtProvider, jwtCfg),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
 	taxHandler.RegisterRoutes(
 		admin,
-		platformMiddleware.AuthRequired(jwtProvider),
+		platformMiddleware.AuthRequired(jwtProvider, jwtCfg),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
 	mediaHandler.RegisterRoutes(
 		admin,
-		platformMiddleware.AuthRequired(jwtProvider),
+		platformMiddleware.AuthRequired(jwtProvider, jwtCfg),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
 	pluginsHandler.RegisterRoutes(
 		admin,
-		platformMiddleware.AuthRequired(jwtProvider),
+		platformMiddleware.AuthRequired(jwtProvider, jwtCfg),
 		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(permissionChecker, code) },
 	)
 
@@ -387,6 +388,7 @@ UPDATE posts
 				Pages:     pagesService,
 				Taxonomy:  taxService,
 				Search:    postsIdx,
+				JWT:       jwtCfg,
 			},
 		}))
 		path := strings.TrimSpace(graphqlCfg.Path)
@@ -394,9 +396,11 @@ UPDATE posts
 			path = appCfg.APIBasePath + "/graphql"
 		}
 		engine.POST(path, publicLimiter.Middleware("public"), func(c *gin.Context) {
+			c.Request = c.Request.WithContext(gqlapi.WithGinContext(c.Request.Context(), c))
 			gqlSrv.ServeHTTP(c.Writer, c.Request)
 		})
 		engine.GET(path, publicLimiter.Middleware("public"), func(c *gin.Context) {
+			c.Request = c.Request.WithContext(gqlapi.WithGinContext(c.Request.Context(), c))
 			gqlSrv.ServeHTTP(c.Writer, c.Request)
 		})
 		envLower := strings.ToLower(strings.TrimSpace(appCfg.Env))
@@ -424,6 +428,9 @@ UPDATE posts
 	// signals and coordinate a controlled shutdown sequence.
 	go func() {
 		if err := srv.Start(); err != nil {
+			if errors.Is(err, http.ErrServerClosed) {
+				return
+			}
 			logger.Fatalw("http server exited with error",
 				"error", err,
 			)
@@ -449,5 +456,5 @@ UPDATE posts
 		log.Printf("graceful shutdown failed: %v\n", err)
 	}
 
-	logger.Info("nextpress-backend stopped cleanly")
+	logger.Infow("stopped cleanly", "service", appCfg.LogIdentifier)
 }

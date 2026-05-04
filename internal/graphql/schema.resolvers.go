@@ -10,11 +10,13 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/generated"
-	"github.com/Petar-V-Nikolov/nextpress-backend/internal/graphql/model"
-	authApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/auth/application"
-	pagesApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/pages/application"
-	postApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/posts/application"
+	"github.com/nextpresskit/backend/internal/graphql/generated"
+	"github.com/nextpresskit/backend/internal/graphql/model"
+	authApp "github.com/nextpresskit/backend/internal/modules/auth/application"
+	pagesApp "github.com/nextpresskit/backend/internal/modules/pages/application"
+	postApp "github.com/nextpresskit/backend/internal/modules/posts/application"
+	taxApp "github.com/nextpresskit/backend/internal/modules/taxonomy/application"
+	"github.com/nextpresskit/backend/internal/platform/jwtcookie"
 )
 
 // Register is the resolver for the register field.
@@ -48,9 +50,23 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 		}
 		return nil, err
 	}
+
+	if strings.EqualFold(r.JWT.AuthSource, "cookie") {
+		if ginCtx, ok := GinContextFrom(ctx); ok {
+			jwtcookie.SetAuthCookies(ginCtx.Writer, access, refresh, r.JWT)
+		}
+		return &model.AuthTokens{
+			AccessToken:  nil,
+			RefreshToken: nil,
+			User:         domainAuthUserToGQL(u),
+		}, nil
+	}
+
+	accessCopy := access
+	refreshCopy := refresh
 	return &model.AuthTokens{
-		AccessToken:  access,
-		RefreshToken: refresh,
+		AccessToken:  &accessCopy,
+		RefreshToken: &refreshCopy,
 		User:         domainAuthUserToGQL(u),
 	}, nil
 }
@@ -60,21 +76,126 @@ func (r *mutationResolver) Refresh(ctx context.Context, input model.RefreshInput
 	if r.Auth == nil {
 		return nil, errors.New("auth_disabled")
 	}
-	if strings.TrimSpace(input.RefreshToken) == "" {
+	// In cookie mode, we read refresh token from HttpOnly cookies.
+	if strings.EqualFold(r.JWT.AuthSource, "cookie") {
+		if ginCtx, ok := GinContextFrom(ctx); ok {
+			if v, ok := jwtcookie.GetCookieValue(ginCtx.Request, r.JWT.RefreshCookieName); ok {
+				u, access, refresh, err := r.Auth.Refresh(ctx, v)
+				if err != nil {
+					if errors.Is(err, authApp.ErrInvalidLogin) {
+						return nil, errors.New("invalid_refresh_token")
+					}
+					return nil, err
+				}
+				jwtcookie.SetAuthCookies(ginCtx.Writer, access, refresh, r.JWT)
+				return &model.AuthTokens{
+					AccessToken:  nil,
+					RefreshToken: nil,
+					User:         domainAuthUserToGQL(u),
+				}, nil
+			}
+		}
+		return nil, errors.New("invalid_refresh_token")
+	}
+
+	refreshToken := strings.TrimSpace("")
+	if input.RefreshToken != nil {
+		refreshToken = strings.TrimSpace(*input.RefreshToken)
+	}
+	if refreshToken == "" {
 		return nil, errors.New("invalid_payload")
 	}
-	u, access, refresh, err := r.Auth.Refresh(ctx, input.RefreshToken)
+
+	u, access, refresh, err := r.Auth.Refresh(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, authApp.ErrInvalidLogin) {
 			return nil, errors.New("invalid_refresh_token")
 		}
 		return nil, err
 	}
+	accessCopy := access
+	refreshCopy := refresh
 	return &model.AuthTokens{
-		AccessToken:  access,
-		RefreshToken: refresh,
+		AccessToken:  &accessCopy,
+		RefreshToken: &refreshCopy,
 		User:         domainAuthUserToGQL(u),
 	}, nil
+}
+
+// CreateCategory is the resolver for the createCategory field.
+func (r *mutationResolver) CreateCategory(ctx context.Context, input model.CreateCategoryInput) (*model.Category, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.CreateCategory(ctx, input.Name, input.Slug)
+	if err != nil {
+		return nil, err
+	}
+	return domainCategoryToGQL(out), nil
+}
+
+// UpdateCategory is the resolver for the updateCategory field.
+func (r *mutationResolver) UpdateCategory(ctx context.Context, input model.UpdateCategoryInput) (*model.Category, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.UpdateCategory(ctx, input.ID, valueOrEmpty(input.Name), valueOrEmpty(input.Slug))
+	if err != nil {
+		return nil, err
+	}
+	return domainCategoryToGQL(out), nil
+}
+
+// DeleteCategory is the resolver for the deleteCategory field.
+func (r *mutationResolver) DeleteCategory(ctx context.Context, id string) (bool, error) {
+	if r.Taxonomy == nil {
+		return false, errors.New("taxonomy_disabled")
+	}
+	if err := r.Taxonomy.DeleteCategory(ctx, id); err != nil {
+		if errors.Is(err, taxApp.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// CreateTag is the resolver for the createTag field.
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.CreateTag(ctx, input.Name, input.Slug)
+	if err != nil {
+		return nil, err
+	}
+	return domainTagToGQL(out), nil
+}
+
+// UpdateTag is the resolver for the updateTag field.
+func (r *mutationResolver) UpdateTag(ctx context.Context, input model.UpdateTagInput) (*model.Tag, error) {
+	if r.Taxonomy == nil {
+		return nil, errors.New("taxonomy_disabled")
+	}
+	out, err := r.Taxonomy.UpdateTag(ctx, input.ID, valueOrEmpty(input.Name), valueOrEmpty(input.Slug))
+	if err != nil {
+		return nil, err
+	}
+	return domainTagToGQL(out), nil
+}
+
+// DeleteTag is the resolver for the deleteTag field.
+func (r *mutationResolver) DeleteTag(ctx context.Context, id string) (bool, error) {
+	if r.Taxonomy == nil {
+		return false, errors.New("taxonomy_disabled")
+	}
+	if err := r.Taxonomy.DeleteTag(ctx, id); err != nil {
+		if errors.Is(err, taxApp.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // Post is the resolver for the post field.

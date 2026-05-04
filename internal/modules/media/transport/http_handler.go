@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	mediaApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/application"
-	mediaDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/media/domain"
-	platformMiddleware "github.com/Petar-V-Nikolov/nextpress-backend/internal/platform/middleware"
+	mediaApp "github.com/nextpresskit/backend/internal/modules/media/application"
+	mediaDomain "github.com/nextpresskit/backend/internal/modules/media/domain"
+	platformMiddleware "github.com/nextpresskit/backend/internal/platform/middleware"
 )
 
 type Handler struct {

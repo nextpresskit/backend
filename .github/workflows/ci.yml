@@ -21,13 +21,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: nextpress_test
+          POSTGRES_DB: nextpresskit_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d nextpress_test"
+          --health-cmd "pg_isready -U postgres -d nextpresskit_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -39,7 +39,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version: '1.26.2'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -63,7 +63,7 @@ jobs:
           DB_PORT: "5432"
           DB_USER: postgres
           DB_PASSWORD: postgres
-          DB_NAME: nextpress_test
+          DB_NAME: nextpresskit_test
           DB_SSLMODE: disable
         run: make test-integration
 

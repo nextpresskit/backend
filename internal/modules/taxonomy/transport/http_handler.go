@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	taxApp "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/application"
-	taxDomain "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/taxonomy/domain"
+	taxApp "github.com/nextpresskit/backend/internal/modules/taxonomy/application"
+	taxDomain "github.com/nextpresskit/backend/internal/modules/taxonomy/domain"
 )
 
 type Handler struct {

@@ -1,6 +1,6 @@
 package application
 
-import "github.com/Petar-V-Nikolov/nextpress-backend/internal/modules/user/domain"
+import "github.com/nextpresskit/backend/internal/modules/user/domain"
 
 type Service struct {
 	repo domain.Repository
