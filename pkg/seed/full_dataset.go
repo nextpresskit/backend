@@ -135,9 +135,12 @@ func seedUsers(tx *gorm.DB, superadminEmail, passwordHash string) error {
 			Active:    true,
 		}
 		now := time.Now().UTC()
+		// Upsert on primary key: deterministic seed UUIDs are stable across runs.
+		// Conflict on email alone fails when a row already has this id but a different email (23505 on users_pkey).
 		if err := tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "email"}},
+			Columns: []clause.Column{{Name: "id"}},
 			DoUpdates: clause.Assignments(map[string]any{
+				"email":      email,
 				"first_name": firstName,
 				"last_name":  lastName,
 				"password":   passwordHash,
