@@ -2,10 +2,11 @@ package domain
 
 import "time"
 
-type MediaID string
+type MediaID int64
 
 type Media struct {
 	ID           MediaID
+	UUID         string
 	UploaderID   string
 	OriginalName string
 	StorageName  string
@@ -15,4 +16,3 @@ type Media struct {
 	PublicURL    string
 	CreatedAt    time.Time
 }
-

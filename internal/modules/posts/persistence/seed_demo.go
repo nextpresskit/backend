@@ -11,6 +11,42 @@ import (
 
 const demoSeedRows = 100
 
+func lookupPostID(tx *gorm.DB, uuid string) int64 {
+	var id int64
+	_ = tx.Table("posts").Select("id").Where("uuid = ?", uuid).Scan(&id).Error
+	return id
+}
+
+func lookupCategoryID(tx *gorm.DB, uuid string) int64 {
+	var id int64
+	_ = tx.Table("categories").Select("id").Where("uuid = ?", uuid).Scan(&id).Error
+	return id
+}
+
+func lookupTagID(tx *gorm.DB, uuid string) int64 {
+	var id int64
+	_ = tx.Table("tags").Select("id").Where("uuid = ?", uuid).Scan(&id).Error
+	return id
+}
+
+func lookupMediaID(tx *gorm.DB, uuid string) int64 {
+	var id int64
+	_ = tx.Table("media").Select("id").Where("uuid = ?", uuid).Scan(&id).Error
+	return id
+}
+
+func lookupSeriesID(tx *gorm.DB, uuid string) int64 {
+	var id int64
+	_ = tx.Table("series").Select("id").Where("uuid = ?", uuid).Scan(&id).Error
+	return id
+}
+
+func lookupTranslationGroupID(tx *gorm.DB, uuid string) int64 {
+	var id int64
+	_ = tx.Table("translation_groups").Select("id").Where("uuid = ?", uuid).Scan(&id).Error
+	return id
+}
+
 // SeedDemo inserts demo posts and related rows.
 func SeedDemo(tx *gorm.DB) error {
 	if err := seedPosts(tx); err != nil {
@@ -62,19 +98,27 @@ func seedPosts(tx *gorm.DB) error {
 			t := now.Add(-time.Duration(i) * time.Hour)
 			publishedAt = &t
 		}
-		postID := helpers.SeedUUID(0x0700, i)
-		pid := postID
+		postUUID := helpers.SeedUUID(0x0700, i)
 		focalX := float32(0.5)
 		focalY := float32(0.5)
 		w, h := 1920, 1080
 		alt := fmt.Sprintf("Featured alt %03d", i)
 		credit := "Seed Generator"
 		license := "CC-BY"
-		catID := helpers.SeedUUID(0x0400, i)
-		mediaID := helpers.SeedUUID(0x0600, i)
+		catUUID := helpers.SeedUUID(0x0400, i)
+		mediaUUID := helpers.SeedUUID(0x0600, i)
+		mid := lookupMediaID(tx, mediaUUID)
+		cid := lookupCategoryID(tx, catUUID)
+		var featuredPtr *int64
+		if mid > 0 {
+			featuredPtr = &mid
+		}
+		var primaryPtr *int64
+		if cid > 0 {
+			primaryPtr = &cid
+		}
 		p := Post{
-			ID:                 postID,
-			UUID:               &pid,
+			UUID:               postUUID,
 			AuthorID:           helpers.UserPublicIDFromUUID(tx, "users", helpers.SeedUUID(0x0100, i)),
 			Title:              fmt.Sprintf("Seed Post %03d", i),
 			Slug:               fmt.Sprintf("seed-post-%03d", i),
@@ -98,7 +142,7 @@ func seedPosts(tx *gorm.DB) error {
 			Flags:              helpers.J(`{"featured": false}`),
 			Engagement:         helpers.Jf(`{"score": %d}`, i),
 			Workflow:           helpers.Jf(`{"state": "draft-%03d"}`, i),
-			FeaturedMediaID:    &mediaID,
+			FeaturedMediaID:    featuredPtr,
 			FeaturedAlt:        &alt,
 			FeaturedWidth:      &w,
 			FeaturedHeight:     &h,
@@ -106,7 +150,9 @@ func seedPosts(tx *gorm.DB) error {
 			FeaturedFocalY:     &focalY,
 			FeaturedCredit:     &credit,
 			FeaturedLicense:    &license,
-			PrimaryCategoryID:  &catID,
+			PrimaryCategoryID:  primaryPtr,
+			CreatedAt:          now,
+			UpdatedAt:            now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "slug"}},
@@ -128,7 +174,14 @@ func seedPosts(tx *gorm.DB) error {
 
 func seedPostCategories(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
-		row := PostCategory{PostID: helpers.SeedUUID(0x0700, i), CategoryID: helpers.SeedUUID(0x0400, i)}
+		pu := helpers.SeedUUID(0x0700, i)
+		cu := helpers.SeedUUID(0x0400, i)
+		pid := lookupPostID(tx, pu)
+		cid := lookupCategoryID(tx, cu)
+		if pid == 0 || cid == 0 {
+			continue
+		}
+		row := PostCategory{PostID: pid, CategoryID: cid}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "post_id"}, {Name: "category_id"}},
 			DoNothing: true,
@@ -141,7 +194,14 @@ func seedPostCategories(tx *gorm.DB) error {
 
 func seedPostTags(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
-		row := PostTag{PostID: helpers.SeedUUID(0x0700, i), TagID: helpers.SeedUUID(0x0500, i)}
+		pu := helpers.SeedUUID(0x0700, i)
+		tu := helpers.SeedUUID(0x0500, i)
+		pid := lookupPostID(tx, pu)
+		tid := lookupTagID(tx, tu)
+		if pid == 0 || tid == 0 {
+			continue
+		}
+		row := PostTag{PostID: pid, TagID: tid}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "post_id"}, {Name: "tag_id"}},
 			DoNothing: true,
@@ -161,8 +221,12 @@ func seedPostSEO(tx *gorm.DB) error {
 		ogt := "article"
 		ogu := fmt.Sprintf("https://example.local/media/seed-image-%03d.jpg", i)
 		tw := "summary_large_image"
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		if pid == 0 {
+			continue
+		}
 		row := PostSEO{
-			PostID:         helpers.SeedUUID(0x0700, i),
+			PostID:         pid,
 			Title:          &t,
 			Description:    &d,
 			CanonicalURL:   &canon,
@@ -195,8 +259,12 @@ func seedPostSEO(tx *gorm.DB) error {
 
 func seedPostMetrics(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		if pid == 0 {
+			continue
+		}
 		row := PostMetrics{
-			PostID:                helpers.SeedUUID(0x0700, i),
+			PostID:                pid,
 			WordCount:             800 + i,
 			CharacterCount:        5000 + i*20,
 			ReadingTimeMinutes:    5,
@@ -231,11 +299,14 @@ func seedPostMetrics(tx *gorm.DB) error {
 }
 
 func seedSeries(tx *gorm.DB) error {
+	now := time.Now().UTC()
 	for i := 1; i <= demoSeedRows; i++ {
 		s := Series{
-			ID:    helpers.SeedUUID(0x0c00, i),
-			Title: fmt.Sprintf("Series %03d", i),
-			Slug:  fmt.Sprintf("series-%03d", i),
+			UUID:      helpers.SeedUUID(0x0c00, i),
+			Title:     fmt.Sprintf("Series %03d", i),
+			Slug:      fmt.Sprintf("series-%03d", i),
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "slug"}},
@@ -253,9 +324,14 @@ func seedPostSeries(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
 		pi := i
 		lbl := fmt.Sprintf("Part %03d", i)
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		sid := lookupSeriesID(tx, helpers.SeedUUID(0x0c00, i))
+		if pid == 0 || sid == 0 {
+			continue
+		}
 		row := PostSeries{
-			PostID:    helpers.SeedUUID(0x0700, i),
-			SeriesID:  helpers.SeedUUID(0x0c00, i),
+			PostID:    pid,
+			SeriesID:  sid,
 			PartIndex: &pi,
 			PartLabel: &lbl,
 		}
@@ -271,8 +347,12 @@ func seedPostSeries(tx *gorm.DB) error {
 
 func seedPostCoauthors(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		if pid == 0 {
+			continue
+		}
 		uid := helpers.UserPublicIDFromUUID(tx, "users", helpers.SeedUUID(0x0100, ((i)%demoSeedRows)+1))
-		row := PostCoauthor{PostID: helpers.SeedUUID(0x0700, i), UserID: uid, SortOrder: 1}
+		row := PostCoauthor{PostID: pid, UserID: uid, SortOrder: 1}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "post_id"}, {Name: "user_id"}},
 			DoNothing: true,
@@ -287,16 +367,21 @@ func seedPostGalleryItems(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
 		cap := fmt.Sprintf("Gallery caption %03d", i)
 		alt := fmt.Sprintf("Gallery alt %03d", i)
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		mid := lookupMediaID(tx, helpers.SeedUUID(0x0600, i))
+		if pid == 0 || mid == 0 {
+			continue
+		}
 		row := PostGalleryItem{
-			ID:        helpers.SeedUUID(0x0d00, i),
-			PostID:    helpers.SeedUUID(0x0700, i),
-			MediaID:   helpers.SeedUUID(0x0600, i),
+			UUID:      helpers.SeedUUID(0x0d00, i),
+			PostID:    pid,
+			MediaID:   mid,
 			SortOrder: i,
 			Caption:   &cap,
 			Alt:       &alt,
 		}
 		if err := tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "id"}},
+			Columns: []clause.Column{{Name: "uuid"}},
 			DoUpdates: clause.Assignments(map[string]any{
 				"post_id": row.PostID, "media_id": row.MediaID, "sort_order": row.SortOrder,
 				"caption": row.Caption, "alt": row.Alt,
@@ -310,17 +395,21 @@ func seedPostGalleryItems(tx *gorm.DB) error {
 
 func seedPostChangelog(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		if pid == 0 {
+			continue
+		}
 		u := helpers.UserPublicIDFromUUID(tx, "users", helpers.SeedUUID(0x0100, ((i+2)%demoSeedRows)+1))
 		note := fmt.Sprintf("Seed changelog entry %03d", i)
 		row := PostChangelog{
-			ID:     helpers.SeedUUID(0x0e00, i),
-			PostID: helpers.SeedUUID(0x0700, i),
+			UUID:   helpers.SeedUUID(0x0e00, i),
+			PostID: pid,
 			At:     time.Now().UTC().Add(-time.Duration(i) * time.Hour),
 			UserID: helpers.Int64Ptr(u),
 			Note:   note,
 		}
 		if err := tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "id"}},
+			Columns: []clause.Column{{Name: "uuid"}},
 			DoUpdates: clause.Assignments(map[string]any{
 				"post_id": row.PostID, "at": row.At, "user_id": row.UserID, "note": row.Note,
 			}),
@@ -334,9 +423,13 @@ func seedPostChangelog(tx *gorm.DB) error {
 func seedPostSyndication(tx *gorm.DB) error {
 	now := time.Now().UTC()
 	for i := 1; i <= demoSeedRows; i++ {
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		if pid == 0 {
+			continue
+		}
 		row := PostSyndication{
-			ID:        helpers.SeedUUID(0x0f00, i),
-			PostID:    helpers.SeedUUID(0x0700, i),
+			UUID:      helpers.SeedUUID(0x0f00, i),
+			PostID:    pid,
 			Platform:  "medium",
 			URL:       fmt.Sprintf("https://medium.example/seed-post-%03d", i),
 			Status:    "active",
@@ -344,7 +437,7 @@ func seedPostSyndication(tx *gorm.DB) error {
 			UpdatedAt: now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "id"}},
+			Columns: []clause.Column{{Name: "uuid"}},
 			DoUpdates: clause.Assignments(map[string]any{
 				"post_id": row.PostID, "platform": row.Platform, "url": row.URL, "status": row.Status,
 				"updated_at": time.Now().UTC(),
@@ -358,8 +451,11 @@ func seedPostSyndication(tx *gorm.DB) error {
 
 func seedTranslationGroups(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows; i++ {
-		row := TranslationGroup{ID: helpers.SeedUUID(0x1000, i), CreatedAt: time.Now().UTC()}
-		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
+		row := TranslationGroup{UUID: helpers.SeedUUID(0x1000, i), CreatedAt: time.Now().UTC()}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "uuid"}},
+			DoNothing: true,
+		}).Create(&row).Error; err != nil {
 			return fmt.Errorf("translation_groups row %d: %w", i, err)
 		}
 	}
@@ -372,9 +468,14 @@ func seedPostTranslations(tx *gorm.DB) error {
 		if i%2 == 0 {
 			locale = "bg-BG"
 		}
+		pid := lookupPostID(tx, helpers.SeedUUID(0x0700, i))
+		gid := lookupTranslationGroupID(tx, helpers.SeedUUID(0x1000, i))
+		if pid == 0 || gid == 0 {
+			continue
+		}
 		row := PostTranslation{
-			PostID:  helpers.SeedUUID(0x0700, i),
-			GroupID: helpers.SeedUUID(0x1000, i),
+			PostID:  pid,
+			GroupID: gid,
 			Locale:  locale,
 		}
 		if err := tx.Clauses(clause.OnConflict{

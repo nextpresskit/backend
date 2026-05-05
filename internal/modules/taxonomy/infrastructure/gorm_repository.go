@@ -19,7 +19,7 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 
 func (r *GormRepository) CreateCategory(ctx context.Context, c *taxDomain.Category) error {
 	row := taxp.Category{
-		ID:        string(c.ID),
+		UUID:      c.UUID,
 		Name:      c.Name,
 		Slug:      c.Slug,
 		CreatedAt: c.CreatedAt,
@@ -37,6 +37,7 @@ func (r *GormRepository) ListCategories(ctx context.Context, limit, offset int) 
 	for _, row := range rows {
 		out = append(out, taxDomain.Category{
 			ID:        taxDomain.CategoryID(row.ID),
+			UUID:      row.UUID,
 			Name:      row.Name,
 			Slug:      row.Slug,
 			CreatedAt: row.CreatedAt,
@@ -46,9 +47,9 @@ func (r *GormRepository) ListCategories(ctx context.Context, limit, offset int) 
 	return out, nil
 }
 
-func (r *GormRepository) FindCategoryByID(ctx context.Context, id taxDomain.CategoryID) (*taxDomain.Category, error) {
+func (r *GormRepository) FindCategoryByUUID(ctx context.Context, uuid string) (*taxDomain.Category, error) {
 	var row taxp.Category
-	if err := r.db.WithContext(ctx).Where("id = ?", string(id)).First(&row).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("uuid = ?", uuid).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -56,6 +57,25 @@ func (r *GormRepository) FindCategoryByID(ctx context.Context, id taxDomain.Cate
 	}
 	return &taxDomain.Category{
 		ID:        taxDomain.CategoryID(row.ID),
+		UUID:      row.UUID,
+		Name:      row.Name,
+		Slug:      row.Slug,
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
+	}, nil
+}
+
+func (r *GormRepository) FindCategoryByID(ctx context.Context, id taxDomain.CategoryID) (*taxDomain.Category, error) {
+	var row taxp.Category
+	if err := r.db.WithContext(ctx).Where("id = ?", int64(id)).First(&row).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &taxDomain.Category{
+		ID:        taxDomain.CategoryID(row.ID),
+		UUID:      row.UUID,
 		Name:      row.Name,
 		Slug:      row.Slug,
 		CreatedAt: row.CreatedAt,
@@ -64,26 +84,23 @@ func (r *GormRepository) FindCategoryByID(ctx context.Context, id taxDomain.Cate
 }
 
 func (r *GormRepository) UpdateCategory(ctx context.Context, c *taxDomain.Category) error {
-	row := taxp.Category{
-		ID:        string(c.ID),
-		Name:      c.Name,
-		Slug:      c.Slug,
-		CreatedAt: c.CreatedAt,
-		UpdatedAt: c.UpdatedAt,
-	}
 	return r.db.WithContext(ctx).
 		Model(&taxp.Category{}).
-		Where("id = ?", row.ID).
-		Updates(&row).Error
+		Where("uuid = ?", c.UUID).
+		Updates(map[string]any{
+			"name":       c.Name,
+			"slug":       c.Slug,
+			"updated_at": c.UpdatedAt,
+		}).Error
 }
 
-func (r *GormRepository) DeleteCategory(ctx context.Context, id taxDomain.CategoryID) error {
-	return r.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&taxp.Category{}).Error
+func (r *GormRepository) DeleteCategory(ctx context.Context, uuid string) error {
+	return r.db.WithContext(ctx).Where("uuid = ?", uuid).Delete(&taxp.Category{}).Error
 }
 
 func (r *GormRepository) CreateTag(ctx context.Context, t *taxDomain.Tag) error {
 	row := taxp.Tag{
-		ID:        string(t.ID),
+		UUID:      t.UUID,
 		Name:      t.Name,
 		Slug:      t.Slug,
 		CreatedAt: t.CreatedAt,
@@ -101,6 +118,7 @@ func (r *GormRepository) ListTags(ctx context.Context, limit, offset int) ([]tax
 	for _, row := range rows {
 		out = append(out, taxDomain.Tag{
 			ID:        taxDomain.TagID(row.ID),
+			UUID:      row.UUID,
 			Name:      row.Name,
 			Slug:      row.Slug,
 			CreatedAt: row.CreatedAt,
@@ -110,9 +128,9 @@ func (r *GormRepository) ListTags(ctx context.Context, limit, offset int) ([]tax
 	return out, nil
 }
 
-func (r *GormRepository) FindTagByID(ctx context.Context, id taxDomain.TagID) (*taxDomain.Tag, error) {
+func (r *GormRepository) FindTagByUUID(ctx context.Context, uuid string) (*taxDomain.Tag, error) {
 	var row taxp.Tag
-	if err := r.db.WithContext(ctx).Where("id = ?", string(id)).First(&row).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("uuid = ?", uuid).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -120,6 +138,25 @@ func (r *GormRepository) FindTagByID(ctx context.Context, id taxDomain.TagID) (*
 	}
 	return &taxDomain.Tag{
 		ID:        taxDomain.TagID(row.ID),
+		UUID:      row.UUID,
+		Name:      row.Name,
+		Slug:      row.Slug,
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
+	}, nil
+}
+
+func (r *GormRepository) FindTagByID(ctx context.Context, id taxDomain.TagID) (*taxDomain.Tag, error) {
+	var row taxp.Tag
+	if err := r.db.WithContext(ctx).Where("id = ?", int64(id)).First(&row).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &taxDomain.Tag{
+		ID:        taxDomain.TagID(row.ID),
+		UUID:      row.UUID,
 		Name:      row.Name,
 		Slug:      row.Slug,
 		CreatedAt: row.CreatedAt,
@@ -128,29 +165,25 @@ func (r *GormRepository) FindTagByID(ctx context.Context, id taxDomain.TagID) (*
 }
 
 func (r *GormRepository) UpdateTag(ctx context.Context, t *taxDomain.Tag) error {
-	row := taxp.Tag{
-		ID:        string(t.ID),
-		Name:      t.Name,
-		Slug:      t.Slug,
-		CreatedAt: t.CreatedAt,
-		UpdatedAt: t.UpdatedAt,
-	}
 	return r.db.WithContext(ctx).
 		Model(&taxp.Tag{}).
-		Where("id = ?", row.ID).
-		Updates(&row).Error
+		Where("uuid = ?", t.UUID).
+		Updates(map[string]any{
+			"name":       t.Name,
+			"slug":       t.Slug,
+			"updated_at": t.UpdatedAt,
+		}).Error
 }
 
-func (r *GormRepository) DeleteTag(ctx context.Context, id taxDomain.TagID) error {
-	return r.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&taxp.Tag{}).Error
+func (r *GormRepository) DeleteTag(ctx context.Context, uuid string) error {
+	return r.db.WithContext(ctx).Where("uuid = ?", uuid).Delete(&taxp.Tag{}).Error
 }
 
-// Optional: helpers to support idempotent seeding/upserts later.
+// UpsertCategoryBySlug supports idempotent seeding.
 func (r *GormRepository) UpsertCategoryBySlug(ctx context.Context, c *taxDomain.Category) error {
-	row := taxp.Category{ID: string(c.ID), Name: c.Name, Slug: c.Slug, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt}
+	row := taxp.Category{UUID: c.UUID, Name: c.Name, Slug: c.Slug, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt}
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "slug"}},
 		DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at"}),
 	}).Create(&row).Error
 }
-

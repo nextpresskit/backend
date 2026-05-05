@@ -33,17 +33,18 @@ func SeedDemo(tx *gorm.DB) error {
 }
 
 func seedRoles(tx *gorm.DB) error {
+	now := time.Now().UTC()
 	for i := 1; i <= demoSeedRows; i++ {
-		id := seedUUID(0x0200, i)
+		u := seedUUID(0x0200, i)
 		name := fmt.Sprintf("role-%03d", i)
 		if i == 1 {
-			id = roleAdminSeedID
+			u = roleAdminSeedID
 			name = "admin"
 		} else if i == 2 {
-			id = superadminRoleUUID
+			u = superadminRoleUUID
 			name = superadminRoleName
 		}
-		r := rbacp.Role{ID: id, Name: name}
+		r := rbacp.Role{UUID: u, Name: name, CreatedAt: now, UpdatedAt: now}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "name"}},
 			DoUpdates: clause.Assignments(map[string]any{
@@ -57,10 +58,13 @@ func seedRoles(tx *gorm.DB) error {
 }
 
 func seedExtraPermissions(tx *gorm.DB) error {
+	now := time.Now().UTC()
 	for i := 1; i <= demoSeedRows-demoSeedDefaultPermissions; i++ {
 		p := rbacp.Permission{
-			ID:   seedUUID(0x0300, i),
-			Code: fmt.Sprintf("seed:permission:%03d", i),
+			UUID:      seedUUID(0x0300, i),
+			Code:      fmt.Sprintf("seed:permission:%03d", i),
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "code"}},
@@ -76,7 +80,7 @@ func seedExtraPermissions(tx *gorm.DB) error {
 
 func seedSyntheticRolePermissions(tx *gorm.DB) error {
 	for i := 1; i <= demoSeedRows-demoSeedDefaultPermissions; i++ {
-		var permID, roleID string
+		var permID, roleID int64
 		code := fmt.Sprintf("seed:permission:%03d", i)
 		roleName := fmt.Sprintf("role-%03d", i+demoSeedDefaultPermissions)
 		if err := tx.Model(&rbacp.Permission{}).Select("id").Where("code = ?", code).Scan(&permID).Error; err != nil {
@@ -85,7 +89,7 @@ func seedSyntheticRolePermissions(tx *gorm.DB) error {
 		if err := tx.Model(&rbacp.Role{}).Select("id").Where("name = ?", roleName).Scan(&roleID).Error; err != nil {
 			return err
 		}
-		if permID == "" || roleID == "" {
+		if permID == 0 || roleID == 0 {
 			continue
 		}
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rbacp.RolePermission{
@@ -97,24 +101,39 @@ func seedSyntheticRolePermissions(tx *gorm.DB) error {
 	return nil
 }
 
+func roleInternalIDByUUID(tx *gorm.DB, uuid string) int64 {
+	var id int64
+	_ = tx.Table("roles").Select("id").Where("uuid = ?", uuid).Scan(&id).Error
+	return id
+}
+
 func seedUserRoles(tx *gorm.DB) error {
 	superPub := userPublicIDFromUUID(tx, "users", superadminUserUUID)
+	sid := roleInternalIDByUUID(tx, superadminRoleUUID)
+	aid := roleInternalIDByUUID(tx, roleAdminSeedID)
+	if superPub == 0 || sid == 0 || aid == 0 {
+		return fmt.Errorf("user_roles seed: missing user or role rows")
+	}
 	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rbacp.UserRole{
 		UserID: superPub,
-		RoleID: superadminRoleUUID,
+		RoleID: sid,
 	}).Error; err != nil {
 		return fmt.Errorf("user_roles superadmin link: %w", err)
 	}
 	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rbacp.UserRole{
 		UserID: superPub,
-		RoleID: roleAdminSeedID,
+		RoleID: aid,
 	}).Error; err != nil {
 		return fmt.Errorf("user_roles admin link: %w", err)
 	}
 	for i := 2; i <= 99; i++ {
+		rid := roleInternalIDByUUID(tx, seedUUID(0x0200, i+1))
+		if rid == 0 {
+			continue
+		}
 		ur := rbacp.UserRole{
 			UserID: userPublicIDFromUUID(tx, "users", seedUUID(0x0100, i)),
-			RoleID: seedUUID(0x0200, i+1),
+			RoleID: rid,
 		}
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&ur).Error; err != nil {
 			return fmt.Errorf("user_roles row %d: %w", i, err)
@@ -129,6 +148,6 @@ func seedUUID(namespace, index int) string {
 
 func userPublicIDFromUUID(tx *gorm.DB, table, userUUID string) int64 {
 	var id int64
-	_ = tx.Table(table).Select("public_id").Where("id = ?", userUUID).Scan(&id).Error
+	_ = tx.Table(table).Select("id").Where("uuid = ?", userUUID).Scan(&id).Error
 	return id
 }

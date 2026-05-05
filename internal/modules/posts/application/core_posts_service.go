@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,7 +44,7 @@ func (s *CorePostsService) Create(ctx context.Context, authorID, title, slug, co
 
 	now := time.Now().UTC()
 	p := &model.Post{
-		ID:            ident.PostID(uuid.NewString()),
+		UUID:          uuid.NewString(),
 		AuthorID:      authorID,
 		Title:         title,
 		Slug:          slug,
@@ -59,7 +60,7 @@ func (s *CorePostsService) Create(ctx context.Context, authorID, title, slug, co
 	}
 
 	if s.hooks != nil {
-		if err := s.hooks.BeforePostSave(ctx, string(p.ID), p.Slug); err != nil {
+		if err := s.hooks.BeforePostSave(ctx, p.UUID, p.Slug); err != nil {
 			return nil, err
 		}
 	}
@@ -72,7 +73,7 @@ func (s *CorePostsService) Create(ctx context.Context, authorID, title, slug, co
 	}
 
 	if s.hooks != nil {
-		if err := s.hooks.AfterPostSave(ctx, string(p.ID), p.Slug); err != nil {
+		if err := s.hooks.AfterPostSave(ctx, p.UUID, p.Slug); err != nil {
 			return nil, err
 		}
 	}
@@ -85,7 +86,7 @@ func (s *CorePostsService) GetByID(ctx context.Context, id string) (*model.Post,
 	if id == "" {
 		return nil, ErrPostNotFound
 	}
-	p, err := s.repo.FindByID(ctx, ident.PostID(id))
+	p, err := s.resolveByIDOrUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +185,7 @@ func (s *CorePostsService) Update(ctx context.Context, id, title, slug, content,
 		return nil, ErrPostNotFound
 	}
 
-	p, err := s.repo.FindByID(ctx, ident.PostID(id))
+	p, err := s.resolveByIDOrUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +242,7 @@ func (s *CorePostsService) Update(ctx context.Context, id, title, slug, content,
 	p.UpdatedAt = time.Now().UTC()
 
 	if s.hooks != nil {
-		if err := s.hooks.BeforePostSave(ctx, string(p.ID), p.Slug); err != nil {
+		if err := s.hooks.BeforePostSave(ctx, p.UUID, p.Slug); err != nil {
 			return nil, err
 		}
 	}
@@ -254,7 +255,7 @@ func (s *CorePostsService) Update(ctx context.Context, id, title, slug, content,
 	}
 
 	if s.hooks != nil {
-		if err := s.hooks.AfterPostSave(ctx, string(p.ID), p.Slug); err != nil {
+		if err := s.hooks.AfterPostSave(ctx, p.UUID, p.Slug); err != nil {
 			return nil, err
 		}
 	}
@@ -264,7 +265,7 @@ func (s *CorePostsService) Update(ctx context.Context, id, title, slug, content,
 
 // Save persists an already-loaded post with any fields updated by callers.
 func (s *CorePostsService) Save(ctx context.Context, p *model.Post) (*model.Post, error) {
-	if p == nil || strings.TrimSpace(string(p.ID)) == "" {
+	if p == nil || strings.TrimSpace(p.UUID) == "" {
 		return nil, ErrPostNotFound
 	}
 
@@ -287,7 +288,7 @@ func (s *CorePostsService) Save(ctx context.Context, p *model.Post) (*model.Post
 	p.UpdatedAt = time.Now().UTC()
 
 	if s.hooks != nil {
-		if err := s.hooks.BeforePostSave(ctx, string(p.ID), p.Slug); err != nil {
+		if err := s.hooks.BeforePostSave(ctx, p.UUID, p.Slug); err != nil {
 			return nil, err
 		}
 	}
@@ -300,7 +301,7 @@ func (s *CorePostsService) Save(ctx context.Context, p *model.Post) (*model.Post
 	}
 
 	if s.hooks != nil {
-		if err := s.hooks.AfterPostSave(ctx, string(p.ID), p.Slug); err != nil {
+		if err := s.hooks.AfterPostSave(ctx, p.UUID, p.Slug); err != nil {
 			return nil, err
 		}
 	}
@@ -313,7 +314,7 @@ func (s *CorePostsService) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return ErrPostNotFound
 	}
-	p, err := s.repo.FindByID(ctx, ident.PostID(id))
+	p, err := s.resolveByIDOrUUID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -321,11 +322,11 @@ func (s *CorePostsService) Delete(ctx context.Context, id string) error {
 		return ErrPostNotFound
 	}
 	slug := p.Slug
-	if err := s.repo.Delete(ctx, ident.PostID(id)); err != nil {
+	if err := s.repo.Delete(ctx, p.ID); err != nil {
 		return err
 	}
 	if s.hooks != nil {
-		if err := s.hooks.AfterPostSave(ctx, id, slug); err != nil {
+		if err := s.hooks.AfterPostSave(ctx, p.UUID, slug); err != nil {
 			return err
 		}
 	}
@@ -338,7 +339,7 @@ func (s *CorePostsService) SetCategories(ctx context.Context, postID string, cat
 		return ErrPostNotFound
 	}
 
-	p, err := s.repo.FindByID(ctx, ident.PostID(postID))
+	p, err := s.resolveByIDOrUUID(ctx, postID)
 	if err != nil {
 		return err
 	}
@@ -346,7 +347,7 @@ func (s *CorePostsService) SetCategories(ctx context.Context, postID string, cat
 		return ErrPostNotFound
 	}
 
-	return s.repo.SetCategories(ctx, ident.PostID(postID), categoryIDs)
+	return s.repo.SetCategories(ctx, p.ID, categoryIDs)
 }
 
 func (s *CorePostsService) SetTags(ctx context.Context, postID string, tagIDs []string) error {
@@ -355,7 +356,7 @@ func (s *CorePostsService) SetTags(ctx context.Context, postID string, tagIDs []
 		return ErrPostNotFound
 	}
 
-	p, err := s.repo.FindByID(ctx, ident.PostID(postID))
+	p, err := s.resolveByIDOrUUID(ctx, postID)
 	if err != nil {
 		return err
 	}
@@ -363,7 +364,7 @@ func (s *CorePostsService) SetTags(ctx context.Context, postID string, tagIDs []
 		return ErrPostNotFound
 	}
 
-	return s.repo.SetTags(ctx, ident.PostID(postID), tagIDs)
+	return s.repo.SetTags(ctx, p.ID, tagIDs)
 }
 
 func (s *CorePostsService) SetPrimaryCategory(ctx context.Context, postID string, categoryID *string) error {
@@ -371,14 +372,14 @@ func (s *CorePostsService) SetPrimaryCategory(ctx context.Context, postID string
 	if postID == "" {
 		return ErrPostNotFound
 	}
-	p, err := s.repo.FindByID(ctx, ident.PostID(postID))
+	p, err := s.resolveByIDOrUUID(ctx, postID)
 	if err != nil {
 		return err
 	}
 	if p == nil {
 		return ErrPostNotFound
 	}
-	return s.repo.SetPrimaryCategory(ctx, ident.PostID(postID), categoryID)
+	return s.repo.SetPrimaryCategory(ctx, p.ID, categoryID)
 }
 
 func normalizeSlug(slug string) string {
@@ -389,4 +390,17 @@ func normalizeSlug(slug string) string {
 	}
 	s = strings.Trim(s, "-")
 	return s
+}
+
+func (s *CorePostsService) resolveByIDOrUUID(ctx context.Context, idOrUUID string) (*model.Post, error) {
+	if idNum, err := strconv.ParseInt(idOrUUID, 10, 64); err == nil && idNum > 0 {
+		p, err := s.repo.FindByID(ctx, ident.PostID(idNum))
+		if err != nil {
+			return nil, err
+		}
+		if p != nil {
+			return p, nil
+		}
+	}
+	return s.repo.FindByUUID(ctx, idOrUUID)
 }

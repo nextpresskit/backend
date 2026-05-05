@@ -33,7 +33,7 @@ func (s *Service) CreateRole(ctx context.Context, name string) (*rbacDomain.Role
 
 	now := time.Now().UTC()
 	role := &rbacDomain.Role{
-		ID:        uuid.NewString(),
+		UUID:      uuid.NewString(),
 		Name:      name,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -61,7 +61,7 @@ func (s *Service) CreatePermission(ctx context.Context, code string) (*rbacDomai
 
 	now := time.Now().UTC()
 	perm := &rbacDomain.Permission{
-		ID:        uuid.NewString(),
+		UUID:      uuid.NewString(),
 		Code:      code,
 		CreatedAt: now,
 		UpdatedAt: now,

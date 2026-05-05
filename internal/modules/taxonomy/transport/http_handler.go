@@ -164,10 +164,10 @@ func writeTaxError(c *gin.Context, err error) {
 }
 
 func categoryToJSON(v *taxDomain.Category) gin.H {
-	return gin.H{"id": v.ID, "name": v.Name, "slug": v.Slug}
+	return gin.H{"id": v.ID, "uuid": v.UUID, "name": v.Name, "slug": v.Slug}
 }
 
 func tagToJSON(v *taxDomain.Tag) gin.H {
-	return gin.H{"id": v.ID, "name": v.Name, "slug": v.Slug}
+	return gin.H{"id": v.ID, "uuid": v.UUID, "name": v.Name, "slug": v.Slug}
 }
 

@@ -47,7 +47,7 @@ func (m *mockPostsCore) Create(_ context.Context, _, _, _, _ string) (*model.Pos
 
 func (m *mockPostsCore) GetByID(_ context.Context, id string) (*model.Post, error) {
 	for i := range m.published {
-		if string(m.published[i].ID) == id {
+		if m.published[i].UUID == id {
 			p := m.published[i]
 			return &p, nil
 		}
@@ -129,7 +129,8 @@ func TestPublicPostsRoute_ReturnsPublishedPosts(t *testing.T) {
 	core := &mockPostsCore{
 		published: []model.Post{
 			{
-				ID:          ident.PostID("p1"),
+				ID:          1,
+				UUID:        "00000000-0000-0000-0000-0000000000a1",
 				AuthorID:    "a1",
 				Title:       "Hello",
 				Slug:        "hello",
@@ -216,7 +217,8 @@ func TestPublicPostsSearch_WithElasticsearch(t *testing.T) {
 	core := &mockPostsCore{
 		published: []model.Post{
 			{
-				ID:          ident.PostID("p1"),
+				ID:          1,
+				UUID:        "00000000-0000-0000-0000-0000000000a1",
 				AuthorID:    "a1",
 				Title:       "Hello",
 				Slug:        "hello",
@@ -228,7 +230,7 @@ func TestPublicPostsSearch_WithElasticsearch(t *testing.T) {
 			},
 		},
 	}
-	es := &mockESSearch{ids: []string{"p1"}}
+	es := &mockESSearch{ids: []string{"00000000-0000-0000-0000-0000000000a1"}}
 	h := NewHandlerWithOptionalSearch(core, stubPostsSubresources{}, stubSeriesAdmin{}, stubTranslationGroupsAdmin{}, es)
 	router := gin.New()
 	api := router.Group("")

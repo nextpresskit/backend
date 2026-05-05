@@ -15,16 +15,7 @@ func AutoMigrateAll(db *gorm.DB, modules []kit.Module) error {
 			return fmt.Errorf("%s: %w", m.ID(), err)
 		}
 	}
-	ensureUserPublicIDDefault(db)
 	return nil
-}
-
-func ensureUserPublicIDDefault(db *gorm.DB) {
-	if err := db.Exec(`CREATE SEQUENCE IF NOT EXISTS users_public_id_seq`).Error; err != nil {
-		return
-	}
-	_ = db.Exec(`SELECT setval('users_public_id_seq', GREATEST(COALESCE((SELECT MAX(public_id) FROM users), 0), 1))`).Error
-	_ = db.Exec(`ALTER TABLE users ALTER COLUMN public_id SET DEFAULT nextval('users_public_id_seq'::regclass)`).Error
 }
 
 // DropPublicSchema drops every table in public (dev reset). Destructive.

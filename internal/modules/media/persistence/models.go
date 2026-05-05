@@ -2,9 +2,10 @@ package persistence
 
 import "time"
 
-// Media maps to media (uploader_id is users.public_id).
+// Media maps to media (uploader_id is users.id).
 type Media struct {
-	ID           string    `gorm:"column:id;type:uuid;primaryKey"`
+	ID           int64     `gorm:"column:id;primaryKey;autoIncrement"`
+	UUID         string    `gorm:"column:uuid;type:uuid;uniqueIndex;not null"`
 	UploaderID   int64     `gorm:"column:uploader_id;not null;index"`
 	OriginalName string    `gorm:"column:original_name;not null"`
 	StorageName  string    `gorm:"column:storage_name;not null;unique"`

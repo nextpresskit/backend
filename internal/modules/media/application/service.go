@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,7 +42,7 @@ func (s *Service) Upload(ctx context.Context, uploaderID, originalName, mimeType
 
 	now := time.Now().UTC()
 	m := &mediaDomain.Media{
-		ID:           mediaDomain.MediaID(uuid.NewString()),
+		UUID:         uuid.NewString(),
 		UploaderID:   uploaderID,
 		OriginalName: originalName,
 		StorageName:  sf.StorageName,
@@ -63,7 +64,16 @@ func (s *Service) GetByID(ctx context.Context, id string) (*mediaDomain.Media, e
 	if id == "" {
 		return nil, ErrNotFound
 	}
-	m, err := s.repo.FindByID(ctx, mediaDomain.MediaID(id))
+	if idNum, err := strconv.ParseInt(id, 10, 64); err == nil && idNum > 0 {
+		m, err := s.repo.FindByID(ctx, mediaDomain.MediaID(idNum))
+		if err != nil {
+			return nil, err
+		}
+		if m != nil {
+			return m, nil
+		}
+	}
+	m, err := s.repo.FindByUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}

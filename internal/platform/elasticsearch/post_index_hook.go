@@ -6,7 +6,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
 	"github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
 )
 
@@ -38,7 +37,7 @@ func (h *PostIndexHook) AfterPostSave(ctx context.Context, postID string, _ stri
 	if postID == "" {
 		return nil
 	}
-	p, err := h.read.FindByID(ctx, ident.PostID(postID))
+	p, err := h.read.FindByUUID(ctx, postID)
 	if err != nil {
 		h.log.Warnw("elasticsearch hook load post failed", "post_id", postID, "error", err)
 		return nil

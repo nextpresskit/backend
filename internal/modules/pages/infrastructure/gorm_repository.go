@@ -30,7 +30,20 @@ func (r *GormRepository) Create(ctx context.Context, page *pageDomain.Page) erro
 func (r *GormRepository) FindByID(ctx context.Context, id pageDomain.PageID) (*pageDomain.Page, error) {
 	var row pagep.Page
 	if err := r.db.WithContext(ctx).
-		Where("id = ?", string(id)).
+		Where("id = ?", int64(id)).
+		First(&row).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return toDomain(&row), nil
+}
+
+func (r *GormRepository) FindByUUID(ctx context.Context, uuid string) (*pageDomain.Page, error) {
+	var row pagep.Page
+	if err := r.db.WithContext(ctx).
+		Where("uuid = ?", uuid).
 		First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -107,13 +120,13 @@ func (r *GormRepository) Update(ctx context.Context, page *pageDomain.Page) erro
 	m := fromDomain(page)
 	return r.db.WithContext(ctx).
 		Model(&pagep.Page{}).
-		Where("id = ?", m.ID).
+		Where("uuid = ?", m.UUID).
 		Updates(m).Error
 }
 
 func (r *GormRepository) Delete(ctx context.Context, id pageDomain.PageID) error {
 	return r.db.WithContext(ctx).
-		Where("id = ?", string(id)).
+		Where("id = ?", int64(id)).
 		Delete(&pagep.Page{}).Error
 }
 
@@ -125,6 +138,7 @@ func toDomain(m *pagep.Page) *pageDomain.Page {
 	}
 	return &pageDomain.Page{
 		ID:          pageDomain.PageID(m.ID),
+		UUID:        m.UUID,
 		AuthorID:    strconv.FormatInt(m.AuthorID, 10),
 		Title:       m.Title,
 		Slug:        m.Slug,
@@ -143,7 +157,8 @@ func fromDomain(p *pageDomain.Page) *pagep.Page {
 		deleted = gorm.DeletedAt{Time: *p.DeletedAt, Valid: true}
 	}
 	return &pagep.Page{
-		ID:          string(p.ID),
+		ID:          int64(p.ID),
+		UUID:        p.UUID,
 		AuthorID:    parseInt64OrZero(p.AuthorID),
 		Title:       p.Title,
 		Slug:        p.Slug,
@@ -163,4 +178,3 @@ func parseInt64OrZero(v string) int64 {
 	}
 	return n
 }
-

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nextpresskit/backend/internal/modules/posts/domain/ident"
 	"github.com/nextpresskit/backend/internal/modules/posts/domain/metrics"
 	"github.com/nextpresskit/backend/internal/modules/posts/domain/ports"
 )
@@ -28,7 +27,7 @@ func (h *DerivedFieldsHook) AfterPostSave(ctx context.Context, postID string, _ 
 	if h == nil || h.repo == nil {
 		return nil
 	}
-	p, err := h.repo.FindByID(ctx, ident.PostID(strings.TrimSpace(postID)))
+	p, err := h.repo.FindByUUID(ctx, strings.TrimSpace(postID))
 	if err != nil || p == nil {
 		return err
 	}

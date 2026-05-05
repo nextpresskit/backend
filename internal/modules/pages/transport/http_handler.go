@@ -168,6 +168,7 @@ func pageToJSON(p *pageDomain.Page) gin.H {
 
 	return gin.H{
 		"id":          p.ID,
+		"uuid":        p.UUID,
 		"authorId":    p.AuthorID,
 		"title":       p.Title,
 		"slug":        p.Slug,

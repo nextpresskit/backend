@@ -2,11 +2,12 @@ package domain
 
 import "time"
 
-type CategoryID string
-type TagID string
+type CategoryID int64
+type TagID int64
 
 type Category struct {
 	ID        CategoryID
+	UUID      string
 	Name      string
 	Slug      string
 	CreatedAt time.Time
@@ -15,9 +16,9 @@ type Category struct {
 
 type Tag struct {
 	ID        TagID
+	UUID      string
 	Name      string
 	Slug      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
-

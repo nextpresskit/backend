@@ -11,8 +11,8 @@ import (
 
 // Post is the aggregate root for posts module read/write paths.
 type Post struct {
-	ID            ident.PostID
-	UUID          *string
+	ID            ident.PostID // internal bigint PK
+	UUID          string       // stable public identifier
 	AuthorID      string
 	Title         string
 	Slug          string

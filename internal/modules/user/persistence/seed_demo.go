@@ -47,7 +47,7 @@ func seedUsers(tx *gorm.DB, superadminEmail, passwordHash string) error {
 		}
 		now := time.Now().UTC()
 		if err := tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "id"}},
+			Columns: []clause.Column{{Name: "uuid"}},
 			DoUpdates: clause.Assignments(map[string]any{
 				"email":      email,
 				"first_name": firstName,
@@ -57,7 +57,7 @@ func seedUsers(tx *gorm.DB, superadminEmail, passwordHash string) error {
 				"deleted_at": nil,
 				"updated_at": now,
 			}),
-		}).Omit("public_id").Create(&u).Error; err != nil {
+		}).Create(&u).Error; err != nil {
 			return fmt.Errorf("users row %d: %w", i, err)
 		}
 	}

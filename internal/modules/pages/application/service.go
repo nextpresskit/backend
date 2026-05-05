@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ func (s *Service) Create(ctx context.Context, authorID, title, slug, content str
 
 	now := time.Now().UTC()
 	p := &pageDomain.Page{
-		ID:        pageDomain.PageID(uuid.NewString()),
+		UUID:      uuid.NewString(),
 		AuthorID:  authorID,
 		Title:     title,
 		Slug:      slug,
@@ -70,7 +71,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*pageDomain.Page, err
 	if id == "" {
 		return nil, ErrPageNotFound
 	}
-	p, err := s.repo.FindByID(ctx, pageDomain.PageID(id))
+	p, err := s.resolveByIDOrUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +132,7 @@ func (s *Service) Update(ctx context.Context, id, title, slug, content, status s
 		return nil, ErrPageNotFound
 	}
 
-	p, err := s.repo.FindByID(ctx, pageDomain.PageID(id))
+	p, err := s.resolveByIDOrUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +186,27 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return ErrPageNotFound
 	}
-	return s.repo.Delete(ctx, pageDomain.PageID(id))
+	pg, err := s.resolveByIDOrUUID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if pg == nil {
+		return ErrPageNotFound
+	}
+	return s.repo.Delete(ctx, pg.ID)
+}
+
+func (s *Service) resolveByIDOrUUID(ctx context.Context, idOrUUID string) (*pageDomain.Page, error) {
+	if idNum, err := strconv.ParseInt(idOrUUID, 10, 64); err == nil && idNum > 0 {
+		p, err := s.repo.FindByID(ctx, pageDomain.PageID(idNum))
+		if err != nil {
+			return nil, err
+		}
+		if p != nil {
+			return p, nil
+		}
+	}
+	return s.repo.FindByUUID(ctx, idOrUUID)
 }
 
 func normalizeSlug(slug string) string {

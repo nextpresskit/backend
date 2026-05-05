@@ -96,6 +96,7 @@ func (h *Handler) list(c *gin.Context) {
 func mediaToJSON(m *mediaDomain.Media) gin.H {
 	return gin.H{
 		"id":           m.ID,
+		"uuid":         m.UUID,
 		"uploaderId":   m.UploaderID,
 		"originalName": m.OriginalName,
 		"mimeType":     m.MimeType,

@@ -112,7 +112,7 @@ UPDATE posts
 				defer rows.Close()
 				var n int64
 				for rows.Next() {
-					var id string
+					var id int64
 					if scanErr := rows.Scan(&id); scanErr != nil {
 						logger.Errorw("scheduled publish scan failed", "error", scanErr)
 						return

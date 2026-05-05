@@ -594,11 +594,6 @@ func postToJSON(p *model.Post) gin.H {
 		firstIndexedAt = p.FirstIndexedAt
 	}
 
-	var uuid any
-	if p.UUID != nil {
-		uuid = *p.UUID
-	}
-
 	var featuredImage any
 	if p.FeaturedMediaID != nil || p.FeaturedMediaPublicURL != nil || p.FeaturedAlt != nil || p.FeaturedWidth != nil || p.FeaturedHeight != nil || p.FeaturedFocalX != nil || p.FeaturedFocalY != nil || p.FeaturedCredit != nil || p.FeaturedLicense != nil {
 		fp := gin.H{}
@@ -673,8 +668,8 @@ func postToJSON(p *model.Post) gin.H {
 	}
 
 	return gin.H{
-		"id":                 p.ID,
-		"uuid":               uuid,
+		"id":                 int64(p.ID),
+		"uuid":               p.UUID,
 		"authorId":           p.AuthorID,
 		"author":             author,
 		"title":              p.Title,
@@ -811,7 +806,7 @@ func parseTimePtr(s *string) *time.Time {
 
 func applyCreateExtrasFromRequest(p *model.Post, req *createPostRequest) {
 	if req.UUID != nil {
-		p.UUID = req.UUID
+		p.UUID = *req.UUID
 	}
 	if req.Subtitle != nil {
 		p.Subtitle = *req.Subtitle
@@ -925,7 +920,7 @@ func applyCreateExtrasFromRequest(p *model.Post, req *createPostRequest) {
 
 func applyUpdateExtrasFromRequest(p *model.Post, req *updatePostRequest) {
 	if req.UUID != nil {
-		p.UUID = req.UUID
+		p.UUID = *req.UUID
 	}
 	if req.Subtitle != nil {
 		p.Subtitle = *req.Subtitle

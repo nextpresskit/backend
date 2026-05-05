@@ -48,6 +48,11 @@ func (a *RepositoryAdapter) FindByID(ctx context.Context, id ident.PostID) (*mod
 	return p, mapErr(err)
 }
 
+func (a *RepositoryAdapter) FindByUUID(ctx context.Context, uuid string) (*model.Post, error) {
+	p, err := a.inner.FindByUUID(ctx, uuid)
+	return p, mapErr(err)
+}
+
 func (a *RepositoryAdapter) FindBySlug(ctx context.Context, slug string) (*model.Post, error) {
 	p, err := a.inner.FindBySlug(ctx, slug)
 	return p, mapErr(err)

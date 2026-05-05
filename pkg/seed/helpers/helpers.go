@@ -24,7 +24,7 @@ func SeedUUID(namespace, index int) string {
 
 func UserPublicIDFromUUID(tx *gorm.DB, table string, userUUID string) int64 {
 	var id int64
-	_ = tx.Table(table).Select("public_id").Where("id = ?", userUUID).Scan(&id).Error
+	_ = tx.Table(table).Select("id").Where("uuid = ?", userUUID).Scan(&id).Error
 	return id
 }
 

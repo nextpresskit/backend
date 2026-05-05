@@ -224,7 +224,11 @@ run_one_step() {
 confirm_yes() {
   local msg=$1
   local ans
-  read -r -p "$msg [y/N]: " ans || return 1
+  if [[ -r /dev/tty ]]; then
+    read -r -p "$msg [y/N]: " ans </dev/tty || return 1
+  else
+    read -r -p "$msg [y/N]: " ans || return 1
+  fi
   [[ "${ans:-}" == "y" || "${ans:-}" == "Y" ]]
 }
 

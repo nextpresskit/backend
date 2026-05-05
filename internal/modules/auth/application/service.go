@@ -99,6 +99,11 @@ func (s *Service) Login(ctx context.Context, email, password string) (*userDomai
 		return nil, "", "", ErrInvalidLogin
 	}
 
+	u, err = s.ensureUserWithNumericID(u)
+	if err != nil {
+		return nil, "", "", err
+	}
+
 	access, err := s.tokens.GenerateAccessToken(fmt.Sprintf("%d", u.ID))
 	if err != nil {
 		return nil, "", "", err
@@ -116,23 +121,24 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*userDomain
 		return nil, "", "", ErrInvalidLogin
 	}
 
-	id, err := parseUserID(userID)
-	if err != nil {
-		return nil, "", "", ErrInvalidLogin
-	}
-	u, err := s.users.FindByID(id)
+	u, err := s.findUserByIDOrUUID(strings.TrimSpace(userID))
 	if err != nil {
 		return nil, "", "", err
 	}
 	if u == nil {
 		return nil, "", "", ErrInvalidLogin
 	}
-
-	access, err := s.tokens.GenerateAccessToken(userID)
+	u, err = s.ensureUserWithNumericID(u)
 	if err != nil {
 		return nil, "", "", err
 	}
-	refresh, err := s.tokens.GenerateRefreshToken(userID)
+	canonicalID := fmt.Sprintf("%d", u.ID)
+
+	access, err := s.tokens.GenerateAccessToken(canonicalID)
+	if err != nil {
+		return nil, "", "", err
+	}
+	refresh, err := s.tokens.GenerateRefreshToken(canonicalID)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -140,11 +146,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*userDomain
 }
 
 func (s *Service) Me(ctx context.Context, userID string) (*userDomain.User, error) {
-	id, err := parseUserID(userID)
-	if err != nil {
-		return nil, ErrUserNotFound
-	}
-	u, err := s.users.FindByID(id)
+	u, err := s.findUserByIDOrUUID(strings.TrimSpace(userID))
 	if err != nil {
 		return nil, err
 	}
@@ -194,4 +196,39 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 
 func generateUserID() string {
 	return uuid.New().String()
+}
+
+func (s *Service) findUserByIDOrUUID(raw string) (*userDomain.User, error) {
+	if id, err := parseUserID(raw); err == nil {
+		u, err := s.users.FindByID(id)
+		if err != nil {
+			return nil, err
+		}
+		if u != nil {
+			return u, nil
+		}
+	}
+	if raw == "" {
+		return nil, nil
+	}
+	return s.users.FindByUUID(raw)
+}
+
+func (s *Service) ensureUserWithNumericID(u *userDomain.User) (*userDomain.User, error) {
+	if u == nil {
+		return nil, ErrInvalidLogin
+	}
+	if u.ID > 0 {
+		return u, nil
+	}
+	if strings.TrimSpace(u.UUID) != "" {
+		resolved, err := s.users.FindByUUID(strings.TrimSpace(u.UUID))
+		if err != nil {
+			return nil, err
+		}
+		if resolved != nil && resolved.ID > 0 {
+			return resolved, nil
+		}
+	}
+	return nil, ErrInvalidLogin
 }

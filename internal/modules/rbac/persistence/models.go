@@ -2,9 +2,10 @@ package persistence
 
 import "time"
 
-// Role maps to roles.
+// Role maps to roles (bigint id + public uuid).
 type Role struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
+	ID        int64     `gorm:"column:id;primaryKey;autoIncrement"`
+	UUID      string    `gorm:"column:uuid;type:uuid;uniqueIndex;not null"`
 	Name      string    `gorm:"column:name;not null;unique"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime"`
@@ -14,7 +15,8 @@ func (Role) TableName() string { return "roles" }
 
 // Permission maps to permissions.
 type Permission struct {
-	ID        string    `gorm:"column:id;type:uuid;primaryKey"`
+	ID        int64     `gorm:"column:id;primaryKey;autoIncrement"`
+	UUID      string    `gorm:"column:uuid;type:uuid;uniqueIndex;not null"`
 	Code      string    `gorm:"column:code;not null;unique"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime"`
@@ -22,18 +24,18 @@ type Permission struct {
 
 func (Permission) TableName() string { return "permissions" }
 
-// UserRole maps to user_roles (user_id is users.public_id).
+// UserRole maps to user_roles (user_id is users.id).
 type UserRole struct {
-	UserID int64  `gorm:"column:user_id;primaryKey"`
-	RoleID string `gorm:"column:role_id;type:uuid;primaryKey"`
+	UserID int64 `gorm:"column:user_id;primaryKey"`
+	RoleID int64 `gorm:"column:role_id;primaryKey"`
 }
 
 func (UserRole) TableName() string { return "user_roles" }
 
 // RolePermission maps to role_permissions.
 type RolePermission struct {
-	RoleID       string `gorm:"column:role_id;type:uuid;primaryKey"`
-	PermissionID string `gorm:"column:permission_id;type:uuid;primaryKey"`
+	RoleID       int64 `gorm:"column:role_id;primaryKey"`
+	PermissionID int64 `gorm:"column:permission_id;primaryKey"`
 }
 
 func (RolePermission) TableName() string { return "role_permissions" }

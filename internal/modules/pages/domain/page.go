@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-type PageID string
+type PageID int64
 
 type Status string
 
@@ -14,6 +14,7 @@ const (
 
 type Page struct {
 	ID          PageID
+	UUID        string
 	AuthorID    string
 	Title       string
 	Slug        string
@@ -24,4 +25,3 @@ type Page struct {
 	UpdatedAt   time.Time
 	DeletedAt   *time.Time
 }
-

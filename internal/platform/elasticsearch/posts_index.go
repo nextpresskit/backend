@@ -121,7 +121,7 @@ func (p *PostsIndex) SyncPost(ctx context.Context, post *model.Post) {
 	if p == nil || p.client == nil {
 		return
 	}
-	id := strings.TrimSpace(string(post.ID))
+	id := strings.TrimSpace(post.UUID)
 	if id == "" {
 		return
 	}

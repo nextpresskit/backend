@@ -27,6 +27,16 @@ func (s *mediaRepoStub) FindByID(_ context.Context, id mediaDomain.MediaID) (*me
 	return s.byID[id], nil
 }
 
+func (s *mediaRepoStub) FindByUUID(_ context.Context, uuid string) (*mediaDomain.Media, error) {
+	for _, m := range s.byID {
+		if m != nil && m.UUID == uuid {
+			cp := *m
+			return &cp, nil
+		}
+	}
+	return nil, nil
+}
+
 func (s *mediaRepoStub) List(_ context.Context, _, _ int) ([]mediaDomain.Media, error) {
 	out := make([]mediaDomain.Media, 0, len(s.byID))
 	for _, v := range s.byID {

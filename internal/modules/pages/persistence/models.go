@@ -6,9 +6,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// Page maps to pages.
+// Page maps to pages (bigint id + public uuid).
 type Page struct {
-	ID          string         `gorm:"column:id;type:uuid;primaryKey"`
+	ID          int64          `gorm:"column:id;primaryKey;autoIncrement"`
+	UUID        string         `gorm:"column:uuid;type:uuid;uniqueIndex;not null"`
 	AuthorID    int64          `gorm:"column:author_id;not null;index"`
 	Title       string         `gorm:"column:title;not null"`
 	Slug        string         `gorm:"column:slug;not null;unique"`

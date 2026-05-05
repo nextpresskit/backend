@@ -113,7 +113,7 @@ func TestRegister_CreatesUser(t *testing.T) {
 func TestRegister_EmailTaken(t *testing.T) {
 	repo := &userRepoStub{
 		byEmail: map[string]*userDomain.User{
-			"taken@example.com": {UUID: "u1", Email: "taken@example.com"},
+			"taken@example.com": {UUID: "00000000-0000-0000-0000-000000000001", Email: "taken@example.com"},
 		},
 	}
 	svc := NewService(repo, tokenStub{}, hasherStub{})
@@ -127,7 +127,7 @@ func TestRegister_EmailTaken(t *testing.T) {
 func TestLogin_Success(t *testing.T) {
 	repo := &userRepoStub{
 		byEmail: map[string]*userDomain.User{
-			"user@example.com": {UUID: "u1", Email: "user@example.com", Password: "hash"},
+			"user@example.com": {ID: 1, UUID: "00000000-0000-0000-0000-000000000001", Email: "user@example.com", Password: "hash"},
 		},
 	}
 	svc := NewService(repo, tokenStub{}, hasherStub{})
@@ -136,8 +136,8 @@ func TestLogin_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected login error: %v", err)
 	}
-	if u == nil || u.UUID != "u1" {
-		t.Fatalf("expected user u1, got %+v", u)
+	if u == nil || u.UUID != "00000000-0000-0000-0000-000000000001" {
+		t.Fatalf("expected user with UUID 00000000-0000-0000-0000-000000000001, got %+v", u)
 	}
 	if access == "" || refresh == "" {
 		t.Fatalf("expected tokens, got access=%q refresh=%q", access, refresh)
@@ -166,10 +166,10 @@ func TestRefresh_InvalidToken(t *testing.T) {
 func TestRefresh_Success(t *testing.T) {
 	repo := &userRepoStub{
 		byID: map[string]*userDomain.User{
-			"1": {ID: 1, UUID: "u1", Email: "user@example.com", Password: "hash"},
+			"1": {ID: 1, UUID: "00000000-0000-0000-0000-000000000001", Email: "user@example.com", Password: "hash"},
 		},
 		byUUID: map[string]*userDomain.User{
-			"u1": {ID: 1, UUID: "u1", Email: "user@example.com", Password: "hash"},
+			"00000000-0000-0000-0000-000000000001": {ID: 1, UUID: "00000000-0000-0000-0000-000000000001", Email: "user@example.com", Password: "hash"},
 		},
 	}
 	svc := NewService(repo, tokenStub{parseRefreshUser: "1"}, hasherStub{})
@@ -186,10 +186,10 @@ func TestRefresh_Success(t *testing.T) {
 func TestMe_Success(t *testing.T) {
 	repo := &userRepoStub{
 		byID: map[string]*userDomain.User{
-			"1": {ID: 1, UUID: "u1", Email: "a@b.com", FirstName: "A", LastName: "B"},
+			"1": {ID: 1, UUID: "00000000-0000-0000-0000-000000000001", Email: "a@b.com", FirstName: "A", LastName: "B"},
 		},
 		byUUID: map[string]*userDomain.User{
-			"u1": {ID: 1, UUID: "u1", Email: "a@b.com", FirstName: "A", LastName: "B"},
+			"00000000-0000-0000-0000-000000000001": {ID: 1, UUID: "00000000-0000-0000-0000-000000000001", Email: "a@b.com", FirstName: "A", LastName: "B"},
 		},
 	}
 	svc := NewService(repo, tokenStub{}, hasherStub{})
@@ -222,7 +222,7 @@ func TestLogout_InvalidToken(t *testing.T) {
 }
 
 func TestLogout_Success(t *testing.T) {
-	svc := NewService(&userRepoStub{}, tokenStub{parseRefreshUser: "u1"}, hasherStub{})
+	svc := NewService(&userRepoStub{}, tokenStub{parseRefreshUser: "00000000-0000-0000-0000-000000000001"}, hasherStub{})
 
 	if err := svc.Logout(context.Background(), "good"); err != nil {
 		t.Fatalf("unexpected logout error: %v", err)

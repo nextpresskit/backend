@@ -20,7 +20,7 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 func (r *GormRepository) FindByID(id domain.UserID) (*domain.User, error) {
 	var u userp.User
 	if err := r.db.WithContext(context.Background()).
-		Where("public_id = ?", int64(id)).
+		Where("id = ?", int64(id)).
 		First(&u).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -33,7 +33,7 @@ func (r *GormRepository) FindByID(id domain.UserID) (*domain.User, error) {
 func (r *GormRepository) FindByUUID(uuid string) (*domain.User, error) {
 	var u userp.User
 	if err := r.db.WithContext(context.Background()).
-		Where("id = ?", uuid).
+		Where("uuid = ?", uuid).
 		First(&u).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -69,13 +69,13 @@ func (r *GormRepository) Update(user *domain.User) error {
 	u := fromDomain(user)
 	return r.db.WithContext(context.Background()).
 		Model(&userp.User{}).
-		Where("id = ?", u.UUID).
+		Where("uuid = ?", u.UUID).
 		Updates(&u).Error
 }
 
 func (r *GormRepository) Delete(id domain.UserID) error {
 	return r.db.WithContext(context.Background()).
-		Where("public_id = ?", int64(id)).
+		Where("id = ?", int64(id)).
 		Delete(&userp.User{}).Error
 }
 
@@ -86,7 +86,7 @@ func toDomain(u *userp.User) *domain.User {
 		deletedAt = &t
 	}
 	return &domain.User{
-		ID:        u.PublicID,
+		ID:        u.ID,
 		UUID:      u.UUID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
@@ -105,7 +105,7 @@ func fromDomain(u *domain.User) *userp.User {
 		deleted = gorm.DeletedAt{Time: *u.DeletedAt, Valid: true}
 	}
 	return &userp.User{
-		PublicID:  u.ID,
+		ID:        u.ID,
 		UUID:      u.UUID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,

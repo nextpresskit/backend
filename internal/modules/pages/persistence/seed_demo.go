@@ -24,13 +24,15 @@ func SeedDemo(tx *gorm.DB) error {
 			publishedAt = &t
 		}
 		pg := Page{
-			ID:          helpers.SeedUUID(0x0800, i),
+			UUID:        helpers.SeedUUID(0x0800, i),
 			AuthorID:    helpers.UserPublicIDFromUUID(tx, "users", helpers.SeedUUID(0x0100, i)),
 			Title:       fmt.Sprintf("Seed Page %03d", i),
 			Slug:        fmt.Sprintf("seed-page-%03d", i),
 			Content:     fmt.Sprintf("Seeded content body for page %03d.", i),
 			Status:      status,
 			PublishedAt: publishedAt,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "slug"}},

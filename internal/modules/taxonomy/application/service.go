@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,7 +35,7 @@ func (s *Service) CreateCategory(ctx context.Context, name, slug string) (*taxDo
 	}
 	now := time.Now().UTC()
 	c := &taxDomain.Category{
-		ID:        taxDomain.CategoryID(uuid.NewString()),
+		UUID:      uuid.NewString(),
 		Name:      name,
 		Slug:      slug,
 		CreatedAt: now,
@@ -46,7 +47,11 @@ func (s *Service) CreateCategory(ctx context.Context, name, slug string) (*taxDo
 		}
 		return nil, err
 	}
-	return c, nil
+	created, err := s.repo.FindCategoryByUUID(ctx, c.UUID)
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
 }
 
 func (s *Service) ListCategories(ctx context.Context, limit, offset int) ([]taxDomain.Category, error) {
@@ -59,7 +64,7 @@ func (s *Service) UpdateCategory(ctx context.Context, id, name, slug string) (*t
 	if id == "" {
 		return nil, ErrNotFound
 	}
-	existing, err := s.repo.FindCategoryByID(ctx, taxDomain.CategoryID(id))
+	existing, err := s.resolveCategoryByIDOrUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +94,14 @@ func (s *Service) DeleteCategory(ctx context.Context, id string) error {
 	if id == "" {
 		return ErrNotFound
 	}
-	return s.repo.DeleteCategory(ctx, taxDomain.CategoryID(id))
+	existing, err := s.resolveCategoryByIDOrUUID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrNotFound
+	}
+	return s.repo.DeleteCategory(ctx, existing.UUID)
 }
 
 func (s *Service) CreateTag(ctx context.Context, name, slug string) (*taxDomain.Tag, error) {
@@ -100,7 +112,7 @@ func (s *Service) CreateTag(ctx context.Context, name, slug string) (*taxDomain.
 	}
 	now := time.Now().UTC()
 	t := &taxDomain.Tag{
-		ID:        taxDomain.TagID(uuid.NewString()),
+		UUID:      uuid.NewString(),
 		Name:      name,
 		Slug:      slug,
 		CreatedAt: now,
@@ -112,7 +124,11 @@ func (s *Service) CreateTag(ctx context.Context, name, slug string) (*taxDomain.
 		}
 		return nil, err
 	}
-	return t, nil
+	created, err := s.repo.FindTagByUUID(ctx, t.UUID)
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
 }
 
 func (s *Service) ListTags(ctx context.Context, limit, offset int) ([]taxDomain.Tag, error) {
@@ -125,7 +141,7 @@ func (s *Service) UpdateTag(ctx context.Context, id, name, slug string) (*taxDom
 	if id == "" {
 		return nil, ErrNotFound
 	}
-	existing, err := s.repo.FindTagByID(ctx, taxDomain.TagID(id))
+	existing, err := s.resolveTagByIDOrUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +171,40 @@ func (s *Service) DeleteTag(ctx context.Context, id string) error {
 	if id == "" {
 		return ErrNotFound
 	}
-	return s.repo.DeleteTag(ctx, taxDomain.TagID(id))
+	existing, err := s.resolveTagByIDOrUUID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrNotFound
+	}
+	return s.repo.DeleteTag(ctx, existing.UUID)
+}
+
+func (s *Service) resolveCategoryByIDOrUUID(ctx context.Context, idOrUUID string) (*taxDomain.Category, error) {
+	if idNum, err := strconv.ParseInt(idOrUUID, 10, 64); err == nil && idNum > 0 {
+		c, err := s.repo.FindCategoryByID(ctx, taxDomain.CategoryID(idNum))
+		if err != nil {
+			return nil, err
+		}
+		if c != nil {
+			return c, nil
+		}
+	}
+	return s.repo.FindCategoryByUUID(ctx, idOrUUID)
+}
+
+func (s *Service) resolveTagByIDOrUUID(ctx context.Context, idOrUUID string) (*taxDomain.Tag, error) {
+	if idNum, err := strconv.ParseInt(idOrUUID, 10, 64); err == nil && idNum > 0 {
+		t, err := s.repo.FindTagByID(ctx, taxDomain.TagID(idNum))
+		if err != nil {
+			return nil, err
+		}
+		if t != nil {
+			return t, nil
+		}
+	}
+	return s.repo.FindTagByUUID(ctx, idOrUUID)
 }
 
 func normalizeSlug(slug string) string {

@@ -10,6 +10,7 @@ import (
 // PostReader loads posts (admin and public list/read paths).
 type PostReader interface {
 	FindByID(ctx context.Context, id ident.PostID) (*model.Post, error)
+	FindByUUID(ctx context.Context, uuid string) (*model.Post, error)
 	FindBySlug(ctx context.Context, slug string) (*model.Post, error)
 	List(ctx context.Context, includeDeleted bool, limit int, offset int) ([]model.Post, error)
 	ListFiltered(ctx context.Context, includeDeleted bool, limit int, offset int, status string, authorID string, q string) ([]model.Post, error)

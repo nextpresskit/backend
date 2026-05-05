@@ -38,12 +38,26 @@ func (s *taxonomyRepoStub) ListCategories(_ context.Context, _, _ int) ([]taxDom
 func (s *taxonomyRepoStub) FindCategoryByID(_ context.Context, id taxDomain.CategoryID) (*taxDomain.Category, error) {
 	return s.categories[id], nil
 }
+func (s *taxonomyRepoStub) FindCategoryByUUID(_ context.Context, uuid string) (*taxDomain.Category, error) {
+	for _, c := range s.categories {
+		if c != nil && c.UUID == uuid {
+			cp := *c
+			return &cp, nil
+		}
+	}
+	return nil, nil
+}
 func (s *taxonomyRepoStub) UpdateCategory(_ context.Context, c *taxDomain.Category) error {
 	s.categories[c.ID] = c
 	return nil
 }
-func (s *taxonomyRepoStub) DeleteCategory(_ context.Context, id taxDomain.CategoryID) error {
-	delete(s.categories, id)
+func (s *taxonomyRepoStub) DeleteCategory(_ context.Context, uuid string) error {
+	for id, c := range s.categories {
+		if c != nil && c.UUID == uuid {
+			delete(s.categories, id)
+			return nil
+		}
+	}
 	return nil
 }
 func (s *taxonomyRepoStub) CreateTag(_ context.Context, t *taxDomain.Tag) error {
@@ -69,19 +83,33 @@ func (s *taxonomyRepoStub) ListTags(_ context.Context, _, _ int) ([]taxDomain.Ta
 func (s *taxonomyRepoStub) FindTagByID(_ context.Context, id taxDomain.TagID) (*taxDomain.Tag, error) {
 	return s.tags[id], nil
 }
+func (s *taxonomyRepoStub) FindTagByUUID(_ context.Context, uuid string) (*taxDomain.Tag, error) {
+	for _, t := range s.tags {
+		if t != nil && t.UUID == uuid {
+			cp := *t
+			return &cp, nil
+		}
+	}
+	return nil, nil
+}
 func (s *taxonomyRepoStub) UpdateTag(_ context.Context, t *taxDomain.Tag) error {
 	s.tags[t.ID] = t
 	return nil
 }
-func (s *taxonomyRepoStub) DeleteTag(_ context.Context, id taxDomain.TagID) error {
-	delete(s.tags, id)
+func (s *taxonomyRepoStub) DeleteTag(_ context.Context, uuid string) error {
+	for id, t := range s.tags {
+		if t != nil && t.UUID == uuid {
+			delete(s.tags, id)
+			return nil
+		}
+	}
 	return nil
 }
 
 func TestCreateCategory_DuplicateSlug(t *testing.T) {
 	repo := &taxonomyRepoStub{
 		categories: map[taxDomain.CategoryID]*taxDomain.Category{
-			"1": {ID: "1", Name: "Go", Slug: "go"},
+			1: {ID: 1, UUID: "00000000-0000-0000-0000-0000000000c1", Name: "Go", Slug: "go"},
 		},
 	}
 	svc := NewService(repo)

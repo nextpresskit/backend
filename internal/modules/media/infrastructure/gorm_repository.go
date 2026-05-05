@@ -28,7 +28,18 @@ func (r *GormRepository) Create(ctx context.Context, m *mediaDomain.Media) error
 
 func (r *GormRepository) FindByID(ctx context.Context, id mediaDomain.MediaID) (*mediaDomain.Media, error) {
 	var row mediap.Media
-	if err := r.db.WithContext(ctx).Where("id = ?", string(id)).First(&row).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("id = ?", int64(id)).First(&row).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return toDomain(&row), nil
+}
+
+func (r *GormRepository) FindByUUID(ctx context.Context, uuid string) (*mediaDomain.Media, error) {
+	var row mediap.Media
+	if err := r.db.WithContext(ctx).Where("uuid = ?", uuid).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -53,6 +64,7 @@ func (r *GormRepository) List(ctx context.Context, limit, offset int) ([]mediaDo
 func toDomain(m *mediap.Media) *mediaDomain.Media {
 	return &mediaDomain.Media{
 		ID:           mediaDomain.MediaID(m.ID),
+		UUID:         m.UUID,
 		UploaderID:   strconv.FormatInt(m.UploaderID, 10),
 		OriginalName: m.OriginalName,
 		StorageName:  m.StorageName,
@@ -66,7 +78,8 @@ func toDomain(m *mediap.Media) *mediaDomain.Media {
 
 func fromDomain(m *mediaDomain.Media) *mediap.Media {
 	return &mediap.Media{
-		ID:           string(m.ID),
+		ID:           int64(m.ID),
+		UUID:         m.UUID,
 		UploaderID:   parseInt64OrZero(m.UploaderID),
 		OriginalName: m.OriginalName,
 		StorageName:  m.StorageName,
@@ -85,4 +98,3 @@ func parseInt64OrZero(v string) int64 {
 	}
 	return n
 }
-

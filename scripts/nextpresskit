@@ -118,7 +118,11 @@ migrate-steps)
 migrate-drop)
   ensure_go
   echo "WARNING: This drops all tables in the configured database."
-  read -r -p "Type y to continue: " confirm
+  if [[ -r /dev/tty ]]; then
+    read -r -p "Type y to continue: " confirm </dev/tty
+  else
+    read -r -p "Type y to continue: " confirm
+  fi
   [[ "${confirm:-N}" == "y" ]] || exit 1
   ALLOW_SCHEMA_DROP=1 go run ./cmd/migrate -command=drop
   ;;

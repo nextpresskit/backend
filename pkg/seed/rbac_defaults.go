@@ -1,6 +1,8 @@
 package seed
 
 import (
+	"fmt"
+
 	rbacp "github.com/nextpresskit/backend/internal/modules/rbac/persistence"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -45,24 +47,34 @@ func knownPermissionID(code string) (string, bool) {
 
 // SeedRBACDefaults upserts the admin role, permission rows for known codes, and admin role links.
 func SeedRBACDefaults(db *gorm.DB, permissionCodes []string) error {
-	roles := []rbacp.Role{
-		{ID: RoleAdminID, Name: "admin"},
+	admin := rbacp.Role{UUID: RoleAdminID, Name: "admin"}
+	if err := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "uuid"}},
+		DoNothing: true,
+	}).Create(&admin).Error; err != nil {
+		return err
 	}
-	for i := range roles {
-		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&roles[i]).Error; err != nil {
-			return err
-		}
+	var roleRow rbacp.Role
+	if err := db.Where("uuid = ?", RoleAdminID).First(&roleRow).Error; err != nil {
+		return fmt.Errorf("load admin role: %w", err)
 	}
 	for _, code := range permissionCodes {
-		id, ok := knownPermissionID(code)
+		permUUID, ok := knownPermissionID(code)
 		if !ok {
 			continue
 		}
-		p := rbacp.Permission{ID: id, Code: code}
-		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&p).Error; err != nil {
+		p := rbacp.Permission{UUID: permUUID, Code: code}
+		if err := db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "code"}},
+			DoUpdates: clause.AssignmentColumns([]string{"uuid", "updated_at"}),
+		}).Create(&p).Error; err != nil {
 			return err
 		}
-		link := rbacp.RolePermission{RoleID: RoleAdminID, PermissionID: id}
+		var permRow rbacp.Permission
+		if err := db.Where("code = ?", code).First(&permRow).Error; err != nil {
+			return err
+		}
+		link := rbacp.RolePermission{RoleID: roleRow.ID, PermissionID: permRow.ID}
 		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&link).Error; err != nil {
 			return err
 		}

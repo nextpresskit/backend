@@ -20,11 +20,14 @@ func SeedDemo(tx *gorm.DB) error {
 }
 
 func seedCategories(tx *gorm.DB) error {
+	now := time.Now().UTC()
 	for i := 1; i <= demoSeedRows; i++ {
 		c := Category{
-			ID:   helpers.SeedUUID(0x0400, i),
-			Name: fmt.Sprintf("Category %03d", i),
-			Slug: fmt.Sprintf("category-%03d", i),
+			UUID:      helpers.SeedUUID(0x0400, i),
+			Name:      fmt.Sprintf("Category %03d", i),
+			Slug:      fmt.Sprintf("category-%03d", i),
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "slug"}},
@@ -40,11 +43,14 @@ func seedCategories(tx *gorm.DB) error {
 }
 
 func seedTags(tx *gorm.DB) error {
+	now := time.Now().UTC()
 	for i := 1; i <= demoSeedRows; i++ {
 		t := Tag{
-			ID:   helpers.SeedUUID(0x0500, i),
-			Name: fmt.Sprintf("Tag %03d", i),
-			Slug: fmt.Sprintf("tag-%03d", i),
+			UUID:      helpers.SeedUUID(0x0500, i),
+			Name:      fmt.Sprintf("Tag %03d", i),
+			Slug:      fmt.Sprintf("tag-%03d", i),
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "slug"}},

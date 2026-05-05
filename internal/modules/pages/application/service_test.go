@@ -33,6 +33,15 @@ func (s *pagesRepoStub) Create(_ context.Context, page *pageDomain.Page) error {
 func (s *pagesRepoStub) FindByID(_ context.Context, id pageDomain.PageID) (*pageDomain.Page, error) {
 	return s.byID[id], nil
 }
+func (s *pagesRepoStub) FindByUUID(_ context.Context, uuid string) (*pageDomain.Page, error) {
+	for _, p := range s.byID {
+		if p != nil && p.UUID == uuid {
+			cp := *p
+			return &cp, nil
+		}
+	}
+	return nil, nil
+}
 func (s *pagesRepoStub) FindBySlug(_ context.Context, slug string) (*pageDomain.Page, error) {
 	return s.bySlug[slug], nil
 }
@@ -74,7 +83,7 @@ func TestCreatePage_NormalizesSlugAndPersists(t *testing.T) {
 func TestCreatePage_DuplicateSlug(t *testing.T) {
 	repo := &pagesRepoStub{
 		byID:   map[pageDomain.PageID]*pageDomain.Page{},
-		bySlug: map[string]*pageDomain.Page{"about": {ID: "1", Slug: "about"}},
+		bySlug: map[string]*pageDomain.Page{"about": {ID: 1, UUID: "00000000-0000-0000-0000-0000000000ab", Slug: "about"}},
 	}
 	svc := NewService(repo)
 
@@ -86,12 +95,12 @@ func TestCreatePage_DuplicateSlug(t *testing.T) {
 
 func TestUpdatePage_InvalidStatus(t *testing.T) {
 	repo := &pagesRepoStub{
-		byID:   map[pageDomain.PageID]*pageDomain.Page{"1": {ID: "1", Slug: "about", Title: "About"}},
-		bySlug: map[string]*pageDomain.Page{"about": {ID: "1", Slug: "about", Title: "About"}},
+		byID:   map[pageDomain.PageID]*pageDomain.Page{1: {ID: 1, UUID: "00000000-0000-0000-0000-000000000001", Slug: "about", Title: "About"}},
+		bySlug: map[string]*pageDomain.Page{"about": {ID: 1, UUID: "00000000-0000-0000-0000-000000000001", Slug: "about", Title: "About"}},
 	}
 	svc := NewService(repo)
 
-	_, err := svc.Update(context.Background(), "1", "", "", "", "bad-status")
+	_, err := svc.Update(context.Background(), "00000000-0000-0000-0000-000000000001", "", "", "", "bad-status")
 	if !errors.Is(err, ErrInvalidStatus) {
 		t.Fatalf("expected ErrInvalidStatus, got %v", err)
 	}
