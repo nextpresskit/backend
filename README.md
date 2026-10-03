@@ -1,6 +1,6 @@
 # NextPressKit
 
-NextPressKit is a starter kit for building modern backend APIs using Go, Gin, and PostgreSQL.
+NextPressKit is a [PN Scripts](https://pnscripts.com) product ([product page](https://pnscripts.com/products/nextpresskit)): a starter kit for building modern backend APIs using Go, Gin, and PostgreSQL. This repository is its backend API.
 
 - Website: [nextpresskit.com](https://nextpresskit.com)
 - Frontend: [nextpresskit/web](https://github.com/nextpresskit/web)
