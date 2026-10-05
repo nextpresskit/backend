@@ -10,6 +10,8 @@ Format:
 ## Unreleased
 
 ### Added
+- Admin users API: `GET /admin/users` (`limit`/`offset`/`q`, `{users,total,limit,offset}`, role names per user) and `GET /admin/users/{id}` (numeric id or uuid), guarded by the new `users:read` permission, which `make seed` grants to the `admin` role. OpenAPI, Postman template, unit tests and a Postgres integration test included.
+- CI: gofmt check, `go test -race`, govulncheck; actions pinned by commit SHA with read-only token permissions.
 - Modular kit: `internal/kit` (`Module`, `Deps`), `internal/app.Run`, `internal/appregistry` default registry, `MODULES` env to filter modules; `cmd/migrate` and `cmd/seed` use the same list. Docs: `docs/MODULES.md`, ADR `docs/adr/0001-module-composition.md`.
 - `pkg/seed/helpers` for shared demo seed helpers.
 - Postman: `jwt_auth_source` on all environments; collection pre-request scripts for cookie vs Bearer JWT; Auth folder script for cookie-mode refresh/logout bodies.

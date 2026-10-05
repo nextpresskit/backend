@@ -128,6 +128,32 @@ func (r *GormRepository) ListRoleNamesByUserID(ctx context.Context, userID strin
 	return names, nil
 }
 
+// RoleNamesByUserIDs returns role names (sorted) keyed by users.id for a batch of users.
+func (r *GormRepository) RoleNamesByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]string, error) {
+	out := make(map[int64][]string, len(userIDs))
+	if len(userIDs) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		UserID int64
+		Name   string
+	}
+	err := r.db.WithContext(ctx).
+		Table("user_roles AS ur").
+		Select("ur.user_id AS user_id, r.name AS name").
+		Joins("JOIN roles AS r ON r.id = ur.role_id").
+		Where("ur.user_id IN ?", userIDs).
+		Order("ur.user_id ASC, r.name ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		out[row.UserID] = append(out[row.UserID], row.Name)
+	}
+	return out, nil
+}
+
 func (r *GormRepository) ListPermissionCodesByUserID(ctx context.Context, userID string) ([]string, error) {
 	var codes []string
 	uid, err := strconv.ParseInt(strings.TrimSpace(userID), 10, 64)

@@ -242,7 +242,7 @@ func registerPublicOrdered(mods []kit.Module, d *kit.Deps) error {
 }
 
 func registerAdminOrdered(mods []kit.Module, d *kit.Deps) error {
-	order := []string{"posts", "pages", "taxonomy", "media", "rbac"}
+	order := []string{"posts", "pages", "taxonomy", "media", "rbac", "user"}
 	for _, id := range order {
 		for _, m := range mods {
 			if m.ID() == id {

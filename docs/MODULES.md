@@ -11,7 +11,7 @@ The compile-time default list (order matters for migrations and HTTP wiring) liv
 
 | Order | Module id | Responsibility |
 |-------|-----------|------------------|
-| 1 | `user` | Users table + demo user seed |
+| 1 | `user` | Users table + demo user seed; admin `GET /admin/users` (paginated, `q` search, roles) and `GET /admin/users/{id}` behind `users:read` |
 | 2 | `rbac` | Roles, permissions, RBAC admin APIs, `/admin/ping`, optional bootstrap |
 | 3 | `auth` | Register/login/refresh/logout/me |
 | 4 | `taxonomy` | Categories and tags |

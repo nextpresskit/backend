@@ -24,22 +24,24 @@ const (
 	PermissionTagsWriteID       = "00000000-0000-0000-0000-000000000208"
 	PermissionMediaReadID       = "00000000-0000-0000-0000-000000000209"
 	PermissionMediaWriteID      = "00000000-0000-0000-0000-000000000210"
+	PermissionUsersReadID       = "00000000-0000-0000-0000-000000000211"
 )
 
 func knownPermissionID(code string) (string, bool) {
 	m := map[string]string{
-		"admin:ping":         PermissionAdminPingID,
-		"rbac:manage":        PermissionRBACManageID,
-		"posts:read":         PermissionPostsReadID,
-		"posts:write":        PermissionPostsWriteID,
-		"pages:read":         PermissionPagesReadID,
-		"pages:write":        PermissionPagesWriteID,
-		"categories:read":    PermissionCategoriesReadID,
-		"categories:write":   PermissionCategoriesWriteID,
-		"tags:read":          PermissionTagsReadID,
-		"tags:write":         PermissionTagsWriteID,
-		"media:read":         PermissionMediaReadID,
-		"media:write":        PermissionMediaWriteID,
+		"admin:ping":       PermissionAdminPingID,
+		"rbac:manage":      PermissionRBACManageID,
+		"posts:read":       PermissionPostsReadID,
+		"posts:write":      PermissionPostsWriteID,
+		"pages:read":       PermissionPagesReadID,
+		"pages:write":      PermissionPagesWriteID,
+		"categories:read":  PermissionCategoriesReadID,
+		"categories:write": PermissionCategoriesWriteID,
+		"tags:read":        PermissionTagsReadID,
+		"tags:write":       PermissionTagsWriteID,
+		"media:read":       PermissionMediaReadID,
+		"media:write":      PermissionMediaWriteID,
+		"users:read":       PermissionUsersReadID,
 	}
 	id, ok := m[code]
 	return id, ok
