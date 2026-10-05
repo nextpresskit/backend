@@ -218,4 +218,3 @@ func normalizeSlug(slug string) string {
 	s = strings.Trim(s, "-")
 	return s
 }
-

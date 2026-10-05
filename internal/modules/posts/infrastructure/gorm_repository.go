@@ -467,8 +467,8 @@ func (r *GormRepository) findByIDWithExtras(ctx context.Context, db *gorm.DB, id
 
 func loadPostCoauthors(ctx context.Context, db *gorm.DB, postID int64) ([]model.UserSummary, error) {
 	var rows []struct {
-		UserID    int64  `gorm:"column:user_id"`
-		SortOrder int    `gorm:"column:sort_order"`
+		UserID    int64 `gorm:"column:user_id"`
+		SortOrder int   `gorm:"column:sort_order"`
 	}
 	if err := db.WithContext(ctx).
 		Table("post_coauthors").

@@ -46,4 +46,3 @@ func TestSharedFixedWindowRateLimiter_BlocksAfterLimit(t *testing.T) {
 		t.Fatalf("expected second request 429, got %d", w2.Code)
 	}
 }
-

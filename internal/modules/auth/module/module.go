@@ -34,7 +34,7 @@ func (authMod) RegisterAuth(d *kit.Deps) error {
 }
 
 func (authMod) RegisterPublic(*kit.Deps) error { return nil }
-func (authMod) RegisterAdmin(*kit.Deps) error { return nil }
+func (authMod) RegisterAdmin(*kit.Deps) error  { return nil }
 
 func (authMod) AutoMigrate(*gorm.DB) error { return nil }
 

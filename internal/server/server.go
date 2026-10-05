@@ -93,4 +93,3 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.log.Infow("http server shutdown complete")
 	return nil
 }
-

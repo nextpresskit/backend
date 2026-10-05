@@ -81,4 +81,3 @@ func (s *LocalStorage) Save(ctx context.Context, filename string, contentType st
 		SizeBytes:   written,
 	}, nil
 }
-

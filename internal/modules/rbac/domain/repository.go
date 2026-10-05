@@ -15,4 +15,3 @@ type Repository interface {
 	ListRoleNamesByUserID(ctx context.Context, userID string) ([]string, error)
 	ListPermissionCodesByUserID(ctx context.Context, userID string) ([]string, error)
 }
-

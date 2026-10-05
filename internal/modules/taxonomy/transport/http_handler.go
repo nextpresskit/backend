@@ -170,4 +170,3 @@ func categoryToJSON(v *taxDomain.Category) gin.H {
 func tagToJSON(v *taxDomain.Tag) gin.H {
 	return gin.H{"id": v.ID, "uuid": v.UUID, "name": v.Name, "slug": v.Slug}
 }
-

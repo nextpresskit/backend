@@ -226,4 +226,3 @@ func normalizeList(limit, offset int) (int, int) {
 	}
 	return limit, offset
 }
-

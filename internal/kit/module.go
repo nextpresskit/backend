@@ -59,8 +59,8 @@ type Deps struct {
 	AuthHandler       *authtransport.Handler
 	RBACHandler       *rbactransport.Handler
 
-	ESClient *elasticsearch.Client
-	PostsIdx *platformES.PostsIndex
+	ESClient  *elasticsearch.Client
+	PostsIdx  *platformES.PostsIndex
 	PostsRepo postPorts.Repository
 }
 

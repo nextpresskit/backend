@@ -102,4 +102,3 @@ func TestGrantPermissionToRole_CallsRepo(t *testing.T) {
 		t.Fatal("expected repository GrantPermissionToRole to be called")
 	}
 }
-

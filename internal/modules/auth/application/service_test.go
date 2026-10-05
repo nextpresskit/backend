@@ -53,7 +53,7 @@ func (s *userRepoStub) Create(user *userDomain.User) error {
 	s.byEmail[user.Email] = user
 	return nil
 }
-func (s *userRepoStub) Update(_ *userDomain.User) error { return nil }
+func (s *userRepoStub) Update(_ *userDomain.User) error  { return nil }
 func (s *userRepoStub) Delete(_ userDomain.UserID) error { return nil }
 
 type tokenStub struct {

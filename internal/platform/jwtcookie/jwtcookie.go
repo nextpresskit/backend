@@ -116,4 +116,3 @@ func GetCookieValue(r *http.Request, cookieName string) (string, bool) {
 	}
 	return ck.Value, true
 }
-

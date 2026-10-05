@@ -12,8 +12,8 @@ import (
 	"github.com/nextpresskit/backend/internal/config"
 	"github.com/nextpresskit/backend/internal/modules/auth/application"
 	userdomain "github.com/nextpresskit/backend/internal/modules/user/domain"
-	platformmw "github.com/nextpresskit/backend/internal/platform/middleware"
 	jwtcookie "github.com/nextpresskit/backend/internal/platform/jwtcookie"
+	platformmw "github.com/nextpresskit/backend/internal/platform/middleware"
 )
 
 type Handler struct {

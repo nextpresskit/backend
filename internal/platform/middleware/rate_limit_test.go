@@ -90,4 +90,3 @@ func TestClientIPFromRequest_PrefersForwardedHeaders(t *testing.T) {
 		t.Fatalf("expected first forwarded IP, got %q", got)
 	}
 }
-

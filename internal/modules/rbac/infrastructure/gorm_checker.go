@@ -40,4 +40,3 @@ func (c *GormPermissionChecker) UserHasPermission(ctx context.Context, userID st
 
 	return count > 0, nil
 }
-

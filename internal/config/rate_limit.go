@@ -20,16 +20,16 @@ type RateLimitConfig struct {
 
 func LoadRateLimitConfig() RateLimitConfig {
 	return RateLimitConfig{
-		Enabled:          parseBool(GetEnv("RATE_LIMIT_ENABLED", "true")),
+		Enabled:            parseBool(GetEnv("RATE_LIMIT_ENABLED", "true")),
 		PublicMaxPerMinute: parseInt(GetEnv("RATE_LIMIT_PUBLIC_MAX_PER_MINUTE", "120"), 120),
 		AuthMaxPerMinute:   parseInt(GetEnv("RATE_LIMIT_AUTH_MAX_PER_MINUTE", "30"), 30),
 		AdminMaxPerMinute:  parseInt(GetEnv("RATE_LIMIT_ADMIN_MAX_PER_MINUTE", "60"), 60),
-		Window:            time.Minute,
-		RedisEnabled:      parseBool(GetEnv("RATE_LIMIT_REDIS_ENABLED", "false")),
-		RedisAddr:         GetEnv("RATE_LIMIT_REDIS_ADDR", ""),
-		RedisPassword:     GetEnv("RATE_LIMIT_REDIS_PASSWORD", ""),
-		RedisDB:           parseInt(GetEnv("RATE_LIMIT_REDIS_DB", "0"), 0),
-		RedisPrefix:       GetEnv("RATE_LIMIT_REDIS_PREFIX", "nextpresskit:ratelimit"),
+		Window:             time.Minute,
+		RedisEnabled:       parseBool(GetEnv("RATE_LIMIT_REDIS_ENABLED", "false")),
+		RedisAddr:          GetEnv("RATE_LIMIT_REDIS_ADDR", ""),
+		RedisPassword:      GetEnv("RATE_LIMIT_REDIS_PASSWORD", ""),
+		RedisDB:            parseInt(GetEnv("RATE_LIMIT_REDIS_DB", "0"), 0),
+		RedisPrefix:        GetEnv("RATE_LIMIT_REDIS_PREFIX", "nextpresskit:ratelimit"),
 	}
 }
 
@@ -58,4 +58,3 @@ func parseInt(v string, fallback int) int {
 	}
 	return n
 }
-

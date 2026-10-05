@@ -109,4 +109,3 @@ func TestRequirePermission_CheckerError(t *testing.T) {
 		t.Fatalf("expected status 500, got %d", w.Code)
 	}
 }
-

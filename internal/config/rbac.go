@@ -12,4 +12,3 @@ func LoadRBACConfig() RBACConfig {
 		BootstrapEnabled: v == "1" || v == "true" || v == "yes" || v == "y" || v == "on",
 	}
 }
-

@@ -7,4 +7,3 @@ import "context"
 type PermissionChecker interface {
 	UserHasPermission(ctx context.Context, userID string, permissionCode string) (bool, error)
 }
-

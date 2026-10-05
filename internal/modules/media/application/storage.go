@@ -15,4 +15,3 @@ type StoredFile struct {
 type Storage interface {
 	Save(ctx context.Context, filename string, contentType string, r io.Reader) (*StoredFile, error)
 }
-

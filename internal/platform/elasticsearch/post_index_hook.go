@@ -12,9 +12,9 @@ import (
 // PostIndexHook syncs post documents to Elasticsearch after successful writes.
 // Errors are logged only; hooks must not fail the HTTP transaction (plan).
 type PostIndexHook struct {
-	log   *zap.SugaredLogger
-	idx   *PostsIndex
-	read  ports.PostReader
+	log  *zap.SugaredLogger
+	idx  *PostsIndex
+	read ports.PostReader
 }
 
 // NewPostIndexHook returns nil when idx is nil.

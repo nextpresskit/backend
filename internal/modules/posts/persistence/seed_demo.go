@@ -152,7 +152,7 @@ func seedPosts(tx *gorm.DB) error {
 			FeaturedLicense:    &license,
 			PrimaryCategoryID:  primaryPtr,
 			CreatedAt:          now,
-			UpdatedAt:            now,
+			UpdatedAt:          now,
 		}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "slug"}},

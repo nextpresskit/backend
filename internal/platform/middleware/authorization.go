@@ -40,4 +40,3 @@ func RequirePermission(checker rbacDomain.PermissionChecker, permissionCode stri
 		c.Next()
 	}
 }
-

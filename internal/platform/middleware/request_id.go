@@ -33,4 +33,3 @@ func RequestIDMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-

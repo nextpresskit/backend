@@ -177,4 +177,3 @@ func metricsMiddleware() gin.HandlerFunc {
 		httpRequestDuration.WithLabelValues(method, route, status).Observe(time.Since(start).Seconds())
 	}
 }
-

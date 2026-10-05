@@ -40,7 +40,9 @@ func (m *mediaMod) RegisterAdmin(d *kit.Deps) error {
 	m.handler.RegisterRoutes(
 		d.Admin,
 		platformMiddleware.AuthRequired(d.JWTProvider, d.JWTCfg),
-		func(code string) gin.HandlerFunc { return platformMiddleware.RequirePermission(d.PermissionChecker, code) },
+		func(code string) gin.HandlerFunc {
+			return platformMiddleware.RequirePermission(d.PermissionChecker, code)
+		},
 	)
 	return nil
 }

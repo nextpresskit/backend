@@ -63,4 +63,3 @@ func (s *RedisCounterStore) IncrementWindow(ctx context.Context, key string, win
 	}
 	return count, ttl, nil
 }
-

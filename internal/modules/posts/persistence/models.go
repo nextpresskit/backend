@@ -9,43 +9,43 @@ import (
 
 // Post maps to posts (author and editor IDs are users.id).
 type Post struct {
-	ID                   int64           `gorm:"column:id;primaryKey;autoIncrement"`
-	UUID                 string          `gorm:"column:uuid;type:uuid;uniqueIndex;not null"`
-	AuthorID             int64           `gorm:"column:author_id;not null;index"`
-	Title                string          `gorm:"column:title;not null"`
-	Slug                 string          `gorm:"column:slug;not null;unique"`
-	Subtitle             string          `gorm:"column:subtitle"`
-	Excerpt              string          `gorm:"column:excerpt"`
-	PostType             string          `gorm:"column:post_type"`
-	Format               string          `gorm:"column:format"`
-	Visibility           string          `gorm:"column:visibility;not null"`
-	Locale               string          `gorm:"column:locale;not null"`
-	Timezone             string          `gorm:"column:timezone;not null"`
-	Content              string          `gorm:"column:content;not null"`
-	Status               string          `gorm:"column:status;not null"`
-	WorkflowStage        string          `gorm:"column:workflow_stage;not null"`
-	Revision             int             `gorm:"column:revision;not null"`
-	ReviewerUserID       *int64          `gorm:"column:reviewer_user_id"`
-	LastEditedByUserID   *int64          `gorm:"column:last_edited_by_user_id"`
-	ScheduledPublishAt   *time.Time      `gorm:"column:scheduled_publish_at"`
-	PublishedAt          *time.Time      `gorm:"column:published_at"`
-	FirstIndexedAt       *time.Time      `gorm:"column:first_indexed_at"`
-	CustomFields         json.RawMessage `gorm:"column:custom_fields;type:jsonb;not null"`
-	Flags                json.RawMessage `gorm:"column:flags;type:jsonb;not null"`
-	Engagement           json.RawMessage `gorm:"column:engagement;type:jsonb;not null"`
-	Workflow             json.RawMessage `gorm:"column:workflow;type:jsonb;not null"`
-	FeaturedMediaID      *int64          `gorm:"column:featured_media_id"`
-	FeaturedAlt          *string         `gorm:"column:featured_alt"`
-	FeaturedWidth        *int            `gorm:"column:featured_width"`
-	FeaturedHeight       *int            `gorm:"column:featured_height"`
-	FeaturedFocalX       *float32        `gorm:"column:featured_focal_x"`
-	FeaturedFocalY       *float32        `gorm:"column:featured_focal_y"`
-	FeaturedCredit       *string         `gorm:"column:featured_credit"`
-	FeaturedLicense      *string         `gorm:"column:featured_license"`
-	PrimaryCategoryID    *int64          `gorm:"column:primary_category_id"`
-	CreatedAt            time.Time       `gorm:"column:created_at;not null"`
-	UpdatedAt            time.Time       `gorm:"column:updated_at;not null"`
-	DeletedAt            gorm.DeletedAt  `gorm:"column:deleted_at;index"`
+	ID                 int64           `gorm:"column:id;primaryKey;autoIncrement"`
+	UUID               string          `gorm:"column:uuid;type:uuid;uniqueIndex;not null"`
+	AuthorID           int64           `gorm:"column:author_id;not null;index"`
+	Title              string          `gorm:"column:title;not null"`
+	Slug               string          `gorm:"column:slug;not null;unique"`
+	Subtitle           string          `gorm:"column:subtitle"`
+	Excerpt            string          `gorm:"column:excerpt"`
+	PostType           string          `gorm:"column:post_type"`
+	Format             string          `gorm:"column:format"`
+	Visibility         string          `gorm:"column:visibility;not null"`
+	Locale             string          `gorm:"column:locale;not null"`
+	Timezone           string          `gorm:"column:timezone;not null"`
+	Content            string          `gorm:"column:content;not null"`
+	Status             string          `gorm:"column:status;not null"`
+	WorkflowStage      string          `gorm:"column:workflow_stage;not null"`
+	Revision           int             `gorm:"column:revision;not null"`
+	ReviewerUserID     *int64          `gorm:"column:reviewer_user_id"`
+	LastEditedByUserID *int64          `gorm:"column:last_edited_by_user_id"`
+	ScheduledPublishAt *time.Time      `gorm:"column:scheduled_publish_at"`
+	PublishedAt        *time.Time      `gorm:"column:published_at"`
+	FirstIndexedAt     *time.Time      `gorm:"column:first_indexed_at"`
+	CustomFields       json.RawMessage `gorm:"column:custom_fields;type:jsonb;not null"`
+	Flags              json.RawMessage `gorm:"column:flags;type:jsonb;not null"`
+	Engagement         json.RawMessage `gorm:"column:engagement;type:jsonb;not null"`
+	Workflow           json.RawMessage `gorm:"column:workflow;type:jsonb;not null"`
+	FeaturedMediaID    *int64          `gorm:"column:featured_media_id"`
+	FeaturedAlt        *string         `gorm:"column:featured_alt"`
+	FeaturedWidth      *int            `gorm:"column:featured_width"`
+	FeaturedHeight     *int            `gorm:"column:featured_height"`
+	FeaturedFocalX     *float32        `gorm:"column:featured_focal_x"`
+	FeaturedFocalY     *float32        `gorm:"column:featured_focal_y"`
+	FeaturedCredit     *string         `gorm:"column:featured_credit"`
+	FeaturedLicense    *string         `gorm:"column:featured_license"`
+	PrimaryCategoryID  *int64          `gorm:"column:primary_category_id"`
+	CreatedAt          time.Time       `gorm:"column:created_at;not null"`
+	UpdatedAt          time.Time       `gorm:"column:updated_at;not null"`
+	DeletedAt          gorm.DeletedAt  `gorm:"column:deleted_at;index"`
 }
 
 func (Post) TableName() string { return "posts" }

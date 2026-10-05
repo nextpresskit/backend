@@ -98,4 +98,3 @@ func (s *Service) GrantPermissionToRole(ctx context.Context, roleID string, perm
 	}
 	return s.repo.GrantPermissionToRole(ctx, roleID, permissionID)
 }
-

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	userDomain "github.com/nextpresskit/backend/internal/modules/user/domain"
 	"github.com/google/uuid"
+	userDomain "github.com/nextpresskit/backend/internal/modules/user/domain"
 )
 
 type TokenProvider interface {
@@ -34,10 +34,10 @@ type UserRelations struct {
 }
 
 type Service struct {
-	users userDomain.Repository
+	users  userDomain.Repository
 	tokens TokenProvider
 	hasher PasswordHasher
-	rbac RBACReader
+	rbac   RBACReader
 }
 
 func NewService(users userDomain.Repository, tokens TokenProvider, hasher PasswordHasher) *Service {

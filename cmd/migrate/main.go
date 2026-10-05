@@ -10,9 +10,9 @@ import (
 
 	"github.com/nextpresskit/backend/internal/appregistry"
 	"github.com/nextpresskit/backend/internal/config"
+	"github.com/nextpresskit/backend/internal/kit"
 	platformdb "github.com/nextpresskit/backend/internal/platform/database"
 	"github.com/nextpresskit/backend/internal/platform/dbmigrate"
-	"github.com/nextpresskit/backend/internal/kit"
 )
 
 func main() {
