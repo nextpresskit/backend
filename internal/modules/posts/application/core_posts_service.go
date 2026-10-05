@@ -392,15 +392,18 @@ func normalizeSlug(slug string) string {
 	return s
 }
 
+// resolveByIDOrUUID looks a post up by numeric id or uuid. Anything else (or a
+// missing row) yields (nil, nil) so callers answer 404 instead of passing a
+// non-uuid string to the uuid column (which Postgres rejects with a 500).
 func (s *CorePostsService) resolveByIDOrUUID(ctx context.Context, idOrUUID string) (*model.Post, error) {
-	if idNum, err := strconv.ParseInt(idOrUUID, 10, 64); err == nil && idNum > 0 {
-		p, err := s.repo.FindByID(ctx, ident.PostID(idNum))
-		if err != nil {
-			return nil, err
+	if idNum, err := strconv.ParseInt(idOrUUID, 10, 64); err == nil {
+		if idNum <= 0 {
+			return nil, nil
 		}
-		if p != nil {
-			return p, nil
-		}
+		return s.repo.FindByID(ctx, ident.PostID(idNum))
+	}
+	if _, err := uuid.Parse(idOrUUID); err != nil {
+		return nil, nil
 	}
 	return s.repo.FindByUUID(ctx, idOrUUID)
 }

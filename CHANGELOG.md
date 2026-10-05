@@ -11,6 +11,7 @@ Format:
 
 ### Added
 - Admin users API: `GET /admin/users` (`limit`/`offset`/`q`, `{users,total,limit,offset}`, role names per user) and `GET /admin/users/{id}` (numeric id or uuid), guarded by the new `users:read` permission, which `make seed` grants to the `admin` role. OpenAPI, Postman template, unit tests and a Postgres integration test included.
+- `GET /admin/posts` now includes author, categories (with primary flag) and tags for each post (batched; public list unchanged).
 - CI: gofmt check, `go test -race`, govulncheck; actions pinned by commit SHA with read-only token permissions.
 - Modular kit: `internal/kit` (`Module`, `Deps`), `internal/app.Run`, `internal/appregistry` default registry, `MODULES` env to filter modules; `cmd/migrate` and `cmd/seed` use the same list. Docs: `docs/MODULES.md`, ADR `docs/adr/0001-module-composition.md`.
 - `pkg/seed/helpers` for shared demo seed helpers.
@@ -25,6 +26,7 @@ Format:
 - Documentation: added `docs/COMMANDS.md` and cross-links across docs for faster navigation and plain-language command explanations.
 
 ### Fixed
+- `GET|PUT|DELETE /admin/posts/{id}` with an unknown numeric id or a non-uuid string returned 500 (the id was retried against the uuid column); it now returns 404 `post_not_found`.
 - (fill in during development)
 
 ### Security
