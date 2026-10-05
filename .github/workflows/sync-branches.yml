@@ -1,6 +1,7 @@
 # After main is updated (PR staging→main merged), sync dev and staging with main.
 # PR flow stays manual: feature→dev, dev→staging, staging→main.
-# This only fixes "behind main" by merging main back into dev and staging.
+# This only fixes "behind main": fast-forward when possible, otherwise a merge commit.
+# On a merge conflict the job fails loudly; resolve it with a PR (never force-push).
 name: Sync branches
 
 on:
@@ -8,32 +9,36 @@ on:
     branches:
       - main
 
+permissions: {}
+
+concurrency:
+  group: sync-branches
+  cancel-in-progress: false
+
 jobs:
   sync:
-    name: Sync dev and staging with main
+    name: Sync ${{ matrix.target }} with main
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [dev, staging]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Configure git
+      - name: Merge main into ${{ matrix.target }}
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Merge main into dev
-        run: |
-          git checkout dev
-          git merge origin/main -m "chore: sync dev with main"
-          git push origin dev
-
-      - name: Merge main into staging
-        run: |
-          git checkout staging
-          git merge origin/main -m "chore: sync staging with main"
-          git push origin staging
-
+          git rev-parse --verify "origin/$TARGET"
+          git checkout "$TARGET"
+          git merge --ff-only origin/main || git merge --no-edit origin/main -m "chore: sync $TARGET with main"
+          git push origin "$TARGET"
