@@ -156,7 +156,7 @@ checks)
   ensure_go
   go test ./...
   go vet ./...
-  go test -tags=integration -count=1 -v ./internal/platform/database ./internal/modules/user/infrastructure
+  go test -tags=integration -count=1 -v ./internal/platform/database ./internal/modules/user/infrastructure ./internal/modules/posts/infrastructure
   go run github.com/getkin/kin-openapi/cmd/validate@latest "$ROOT/docs/openapi.yaml"
   go run golang.org/x/vuln/cmd/govulncheck@latest ./...
   ;;
@@ -170,7 +170,7 @@ test-coverage)
   ;;
 test-integration)
   ensure_go
-  exec go test -tags=integration -count=1 -v ./internal/platform/database ./internal/modules/user/infrastructure
+  exec go test -tags=integration -count=1 -v ./internal/platform/database ./internal/modules/user/infrastructure ./internal/modules/posts/infrastructure
   ;;
 security-check)
   ensure_go

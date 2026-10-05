@@ -122,7 +122,97 @@ func (r *GormRepository) ListFiltered(ctx context.Context, includeDeleted bool, 
 		p := toDomain(&rows[i])
 		out = append(out, *p)
 	}
+	if err := hydrateAdminListSummaries(ctx, r.db, rows, out); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// hydrateAdminListSummaries fills author, categories and tags for an admin list page
+// with three batched queries (instead of the per-post loads used by FindByID).
+// Admin-only: author summaries include e-mail addresses.
+func hydrateAdminListSummaries(ctx context.Context, db *gorm.DB, rows []postp.Post, out []model.Post) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	postIDs := make([]int64, 0, len(rows))
+	authorIDs := make([]int64, 0, len(rows))
+	for i := range rows {
+		postIDs = append(postIDs, int64(rows[i].ID))
+		if rows[i].AuthorID > 0 {
+			authorIDs = append(authorIDs, rows[i].AuthorID)
+		}
+	}
+
+	authors := map[int64]*model.UserSummary{}
+	if len(authorIDs) > 0 {
+		var users []gormUserSummary
+		if err := db.WithContext(ctx).Table("users").
+			Select("id, uuid, first_name, last_name, email").
+			Where("id IN ?", authorIDs).
+			Find(&users).Error; err != nil {
+			return err
+		}
+		for _, u := range users {
+			email := u.Email
+			authors[u.ID] = &model.UserSummary{
+				ID:          strconv.FormatInt(u.ID, 10),
+				UUID:        u.UUID,
+				DisplayName: strings.TrimSpace(strings.TrimSpace(u.FirstName) + " " + strings.TrimSpace(u.LastName)),
+				Email:       &email,
+			}
+		}
+	}
+
+	var catRows []struct {
+		PostID     int64  `gorm:"column:post_id"`
+		InternalID int64  `gorm:"column:id"`
+		UUID       string `gorm:"column:uuid"`
+		Name       string `gorm:"column:name"`
+		Slug       string `gorm:"column:slug"`
+	}
+	if err := db.WithContext(ctx).Table("categories c").
+		Select("pc.post_id, c.id, c.uuid, c.name, c.slug").
+		Joins("JOIN post_categories pc ON pc.category_id = c.id").
+		Where("pc.post_id IN ?", postIDs).
+		Order("c.name ASC").
+		Find(&catRows).Error; err != nil {
+		return err
+	}
+	var tagRows []struct {
+		PostID int64  `gorm:"column:post_id"`
+		UUID   string `gorm:"column:uuid"`
+		Name   string `gorm:"column:name"`
+		Slug   string `gorm:"column:slug"`
+	}
+	if err := db.WithContext(ctx).Table("tags t").
+		Select("pt.post_id, t.uuid, t.name, t.slug").
+		Joins("JOIN post_tags pt ON pt.tag_id = t.id").
+		Where("pt.post_id IN ?", postIDs).
+		Order("t.name ASC").
+		Find(&tagRows).Error; err != nil {
+		return err
+	}
+
+	index := make(map[int64]int, len(rows))
+	for i := range rows {
+		index[int64(rows[i].ID)] = i
+		out[i].Author = authors[rows[i].AuthorID]
+	}
+	for _, c := range catRows {
+		i, ok := index[c.PostID]
+		if !ok {
+			continue
+		}
+		primary := rows[i].PrimaryCategoryID != nil && *rows[i].PrimaryCategoryID == c.InternalID
+		out[i].Categories = append(out[i].Categories, model.PostCategory{ID: c.UUID, Name: c.Name, Slug: c.Slug, IsPrimary: primary})
+	}
+	for _, t := range tagRows {
+		if i, ok := index[t.PostID]; ok {
+			out[i].Tags = append(out[i].Tags, model.PostTag{ID: t.UUID, Name: t.Name, Slug: t.Slug})
+		}
+	}
+	return nil
 }
 
 func (r *GormRepository) ListPublished(ctx context.Context, limit int, offset int, q string, categoryID string, tagID string) ([]model.Post, error) {
